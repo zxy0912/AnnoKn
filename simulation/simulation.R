@@ -5,7 +5,7 @@ source("/home/xz527/Rcode/knockoff_anno/GK_anno/GK_anno.R")
 source("/home/xz527/Rcode/knockoff_anno/GK_anno/GhostKnockoff.R")
 
 
-i = 6
+i = 11
 seed <- 100*i
 
 N.effect = 1000

@@ -84,6 +84,32 @@ fdr_cal <- function(index_result, index_true){
 knockoff_anno_improved <- function(X, Xk, y, lams = NULL, attempts = NULL, R){
   # knockoff_anno want to improve the efficiency.
   
+  
+  
+  ##### adjust the situation when R is all NAs
+  var_para <- apply(R, 2, var)
+  
+  if(all(is.na(R)) | sum(var_para!=0) == 0){
+    print("no informative annotations")
+    p = ncol(X)
+    mdl = cv.glmnet(cbind(X, Xk), y, alpha=1)
+    cvlambda = mdl$lambda.min
+    beta = mdl$glmnet.fit$beta[, mdl$lambda == cvlambda]
+    
+    return(list(lams = NA, # A (set of lambda_0)
+                lambda_BEST = cvlambda, # optimal lambda_0
+                Prior_final = rep(0, 2*p), # final weight phi_j
+                beta = beta, # final beta in adaptive lasso
+                cv_error = NA, # cv error for each lamdba_0 in A
+                obj_fun_all = NA,
+                att_which = NA,
+                lambda_s = rep(0, ncol(R))))
+  }
+  
+  R <- R[, var_para!=0]
+  R = scale(R)
+  #####
+  
   X = scale(X)
   Xk = scale(Xk)
   y = (y-mean(y))/sd(y)

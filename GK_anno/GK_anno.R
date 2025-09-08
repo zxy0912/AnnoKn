@@ -355,8 +355,30 @@ cv_func <- function(r_all, temp.A, A.left, lambda.seq, Prior, n, nfold = 5){
 
 
 GK_anno <- function(Z, R, M = 1, LD, n, ts = 'lasso'){
-  # set.seed(123)
+  
   p = nrow(LD)
+  var_para <- apply(R, 2, var)
+  
+  if(all(is.na(R)) | sum(var_para!=0) == 0){
+    print("no informative annotations")
+    fit.prelim <- GhostKnockoff.prelim(
+      cor.G   = LD,
+      M       = M,
+      method  = "sdp" 
+    )
+    GK1_lasso <- GhostKnockoff.fit(Z, n, fit.prelim, method='lasso')
+    # GK.filter<-GhostKnockoff.filter(GK1_lasso$T_0[[1]],GK1_lasso$T_k[[1]])
+    T_0 = GK1_lasso$T_0[[1]]
+    T_k = GK1_lasso$T_k[[1]]
+    
+    return(list(T_0 = T_0, T_k = T_k, CV_BEST = NA, lambda_BEST = NA,
+                obj_cor_list = NA, lambda_s = rep(0, ncol(R)), Prior = rep(0, 2*p)))
+  }
+  
+  R <- R[, var_para!=0]
+  R = scale(R)
+  
+  # set.seed(123)
   
   fit.prelim <- GhostKnockoff.prelim(
     cor.G   = LD,
@@ -405,7 +427,10 @@ GK_anno <- function(Z, R, M = 1, LD, n, ts = 'lasso'){
     }
   }
   
-  return(list(beta_final = beta_final, CV_BEST = CV_BEST, lambda_BEST = lambda_BEST,
+  T_0<-abs(beta_final[1:p])
+  T_k<-abs(matrix(beta_final[-(1:p)],p,M))
+  
+  return(list(T_0 = T_0, T_k = T_k, CV_BEST = CV_BEST, lambda_BEST = lambda_BEST,
               obj_cor_list = obj_cor_list, lambda_s = lambda_s_final, Prior = Prior_final))
 }
 
