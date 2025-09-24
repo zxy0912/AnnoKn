@@ -17,7 +17,7 @@ suppressMessages(library("rdist"))
 
 
 
-obj_fun <- function(lam, lambda_0, beta, R, n, d = 20){
+obj_fun_old <- function(lam, lambda_0, beta, R, n, d = 20){
   p <- length(beta)/2
   r <- ncol(R)
   
@@ -33,6 +33,27 @@ obj_fun <- function(lam, lambda_0, beta, R, n, d = 20){
   
   return(part2 + part3)
 }
+
+
+
+obj_fun <- function(lam, lambda_0, beta, R, n, d = 20){
+  p <- length(beta)/2
+  r <- ncol(R)
+  
+  eta <- as.vector(R %*% lam) / d
+  max_eta = max(eta)
+  w = exp(eta-max_eta) * p / (sum(exp(eta-max_eta)))
+  combined_beta <- abs(beta[1:p]) + abs(beta[(p+1):(2*p)])
+  
+  part1 = - 2 * sum(log(w)) / n
+  part2<- sum(w * lambda_0 * combined_beta )
+  part3 <- 0.5 * sum(lam^2) / n
+  
+  return(part1 + part2 + part3)
+}
+
+
+
 
 
 weight_standardized <- function(lam, R, d = 20){
@@ -262,7 +283,7 @@ sol_beta_and_lam = function(X, Xk, y, R, lambda_0, init_scale = NULL, maxiter = 
 }
 
 
-
+############################## objective function used in the AnnoKn method: ##############################
 
 cv_mse <- function(X, y, lambda, nfolds = 5, family = "gaussian", Prior = Prior) {
   # set.seed(seed)
@@ -296,7 +317,7 @@ cv_mse <- function(X, y, lambda, nfolds = 5, family = "gaussian", Prior = Prior)
 
 
 
-########### knockoff_simple
+################################# knockoff_simple #################################
 
 
 knockoff_simple = function(X, Xk, y, R) {

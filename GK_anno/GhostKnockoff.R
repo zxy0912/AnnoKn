@@ -1728,3 +1728,162 @@ MK.statistic<-function (T_0,T_k,method='median'){
   }
   return(cbind(kappa,tau))
 }
+
+
+
+
+
+
+
+
+############ original ghostknockoff function:
+
+
+GhostKnockoff.fit.original<-function(Zscore_0, N.effect, fit.prelim, method='susie',type='fdr',M.fwer=50){
+  Zscore_0<-as.matrix(Zscore_0)
+  N.effect<-as.vector(N.effect)
+  Zscore_0[is.na(Zscore_0)]<-0
+  N.effect[is.na(N.effect)]<-Inf
+  
+  M<-fit.prelim$M
+  n.G<-nrow(Zscore_0)
+  P.each<-fit.prelim$P.each
+  Normal_50Studies<-fit.prelim$Normal_50Studies
+  A<-as.matrix(fit.prelim$A)
+  A.left<-fit.prelim$A.left
+  V.left<-fit.prelim$V.left
+  
+  if(type=='fdr'){M.rep<-1}
+  if(type=='fwer'){M.rep<-M.fwer}
+  
+  T_0<-list();T_k<-list()
+  kappa<-list();tau<-list()
+  for(m in 1:M.rep){
+    #Normal_k<-matrix(Normal_50Studies[,m],nrow=n.G)
+    Normal_k<-matrix(V.left%*%matrix(rnorm(ncol(V.left)),ncol(V.left),1),nrow=n.G)
+    GK.Zscore_0<-Zscore_0
+    GK.Zscore_k<-as.vector(P.each%*%GK.Zscore_0)+Normal_k
+    
+    if(method=='marginal'){
+      T_0[[m]]<-(GK.Zscore_0)^2
+      T_k[[m]]<-(GK.Zscore_k)^2
+    }
+    if(method=='lasso'){
+      #calculate importance score
+      r<-GK.Zscore_0/sqrt(N.effect)#sqrt(N.effect-1+GK.Zscore_0^2)
+      r_k<-as.vector(GK.Zscore_k/sqrt(N.effect))#sqrt(N.effect-1+GK.Zscore_k^2))
+      r_all<-as.matrix(c(r,r_k))
+      
+      nfold<-5
+      nA<-N.effect*(nfold-1)/nfold;nB<-N.effect/nfold
+      temp.left<-sqrt(nB/nA/N.effect)*as.matrix(A.left)
+      r_all_A<-r_all+as.matrix(temp.left%*%matrix(rnorm(ncol(temp.left)),ncol(temp.left),1))
+      r_all_B<-(r_all*N.effect-r_all_A*nA)/nB
+      shrink=0.01#seq(0.05,1,0.05)
+      beta.all<-c();parameter.set<-c()
+      k<-1
+      #temp.A<-(1-shrink[k])*A+diag(shrink[k],nrow(A))
+      temp.A<-A+diag(shrink[k],nrow(A))
+      fit.basil<-try(ghostbasil(temp.A, r_all_A, alpha=1, delta.strong.size = max(1,min(500,length(r_all_A)/20)), max.strong.size = nrow(temp.A),n.threads=1,use.strong.rule=F),silent=T)
+      parameter.set<-rbind(parameter.set,cbind(fit.basil$lmdas,shrink[k]))
+      beta.all<-cbind(beta.all,fit.basil$betas)
+      
+      Get.f<-function(x){x<-as.matrix(x);return(t(x)%*%r_all_B/sqrt(t(x)%*%temp.A%*%x))}
+      f.lambda<-apply(beta.all,2,Get.f)
+      f.lambda[is.na(f.lambda)]<--Inf
+      #beta<-beta.all[,which.max(f.lambda)]
+      parameter<-parameter.set[which.max(f.lambda),]
+      temp.A<-(1-parameter[2])*A+diag(parameter[2],nrow(A))
+      
+      lambda.all<-fit.basil$lmdas
+      lambda<-fit.basil$lmdas[which.max(f.lambda)]
+      lambda.seq <- lambda.all[lambda.all > lambda]
+      lambda.seq <- c(lambda.seq, lambda)
+      
+      fit.basil<-ghostbasil(temp.A, r_all,user.lambdas=lambda.seq, alpha=1, delta.strong.size = max(1,min(500,length(r_all_A)/20)), max.strong.size = nrow(temp.A),n.threads=1,use.strong.rule=F)
+      beta<-fit.basil$betas[,ncol(fit.basil$betas)]
+      
+      T_0[[m]]<-abs(beta[1:n.G])
+      T_k[[m]]<-abs(matrix(beta[-(1:n.G)],n.G,M))
+    }
+    if(method=='lasso.approx.lambda'){
+      #calculate importance score
+      r<-GK.Zscore_0/sqrt(N.effect)#sqrt(N.effect-1+GK.Zscore_0^2)
+      r_k<-as.vector(GK.Zscore_k/sqrt(N.effect))#sqrt(N.effect-1+GK.Zscore_k^2))
+      r_all<-as.matrix(c(r,r_k))
+      
+      lambda_max<-max(abs(rnorm(length(r_all))))/sqrt(N.effect)
+      epsilon <- .0001
+      K <- 100
+      lambda.all <- round(exp(seq(log(lambda_max), log(lambda_max*epsilon),
+                                  length.out = K)), digits = 10)
+      lambda<-lambda_max*0.6
+      lambda.seq <- lambda.all[lambda.all > lambda]
+      lambda.seq <- c(lambda.seq, lambda)
+      
+      temp.A<-A+0.01*diag(1,nrow(A))
+      fit.basil<-ghostbasil(temp.A, r_all,user.lambdas=lambda.seq, alpha=1, delta.strong.size = max(1,min(500,length(r_all)/20)), max.strong.size = nrow(temp.A),n.threads=1,use.strong.rule=F)
+      beta<-fit.basil$betas[,ncol(fit.basil$betas)]
+      
+      T_0[[m]]<-abs(beta[1:n.G])
+      T_k[[m]]<-abs(matrix(beta[-(1:n.G)],n.G,M))
+    }
+    if(method=='susie'){
+      fitted_rss <- suppressMessages(susie_rss(z=c(GK.Zscore_0,as.vector(GK.Zscore_k)), R=as.matrix(A), L = min(10,length(GK.Zscore_0))))
+      fitted_vars<-summary(fitted_rss)$vars
+      beta<-fitted_vars[order(fitted_vars[,1]),2]#*c(GK.Zscore_0,as.vector(GK.Zscore_k))^2
+      T_0[[m]]<-abs(beta[1:n.G])
+      T_k[[m]]<-abs(matrix(beta[-(1:n.G)],n.G,M))
+    }
+    MK.stat<-MK.statistic(T_0[[m]],T_k[[m]])
+    kappa[[m]]<-MK.stat[,'kappa']
+    tau[[m]]<-MK.stat[,'tau']
+  }
+  
+  return(list(T_0=T_0,T_k=T_k,kappa=kappa,tau=tau))
+}
+
+
+################# updated version from knockoffCDGE
+
+tau_calculation<-function(x){
+  l<-sort(x,decreasing = T)
+  tau<-l[1]-median(l[-1])
+  return(tau)
+}
+
+
+KO_Filter<-function(tau,kappa,M)
+{
+  ord<-order(tau,decreasing = TRUE)
+  tau_ord<-tau[ord]
+  kappa_ord<-kappa[ord]
+  kappa_ord[tau_ord<1e-6]<-1
+  
+  keep<-sum(tau_ord>1e-6)
+  tau_ord<-tau_ord[1:keep]
+  kappa_ord<-kappa_ord[1:keep]
+  
+  RR<-(kappa_ord==0)
+  
+  aux_term<-0*RR+1
+  
+  RR<-cumsum(kappa_ord==0)
+  RR<-RR+(RR==0)
+  V<-1/M*aux_term+1/M*cumsum(kappa_ord!=0)
+  
+  V_RR<-V/RR
+  q_V_RR<-rep(Inf,length(ord))
+  V_RR_order<-order(V_RR,decreasing = TRUE)
+  for(i in V_RR_order)
+  {
+    q_V_RR[1:i]<-V_RR[i]
+  }
+  q_V_RR[kappa_ord!=0]<-Inf
+  
+  q<-rep(Inf,length(ord))
+  q[ord]<-q_V_RR
+  return(q)
+}
+
+
