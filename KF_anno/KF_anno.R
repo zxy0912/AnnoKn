@@ -53,16 +53,28 @@ obj_fun <- function(lam, lambda_0, beta, R, n, d = 20){
 }
 
 
+obj_fun = obj_fun_old
 
 
+# weight_standardized <- function(lam, R, d = 20){
+# 
+#   p = nrow(R)
+#   eta <- as.vector(R %*% lam) / d
+#   max_eta = max(eta)
+#   w <- exp(eta - max_eta) * p / (sum(exp(eta - max_eta)))
+# 
+#   return(w)
+# }
 
-weight_standardized <- function(lam, R, d = 20){
-  
+
+weight_standardized <- function(lam, R){
+
+  d = 10 * max(abs(R))
   p = nrow(R)
   eta <- as.vector(R %*% lam) / d
-  max_eta = max(eta)
-  w <- exp(eta - max_eta) * p / (sum(exp(eta - max_eta)))
-  
+  # max_eta = max(eta)
+  w <- exp(eta)
+
   return(w)
 }
 

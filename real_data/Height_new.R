@@ -28,8 +28,8 @@ bedNA <- function(bed1){
 
 
 ################ load the summary statistics
-ancestry0 = 'EUR'
-ancestry1 = c('AFR')
+ancestry0 = 'AFR'
+ancestry1 = c('EUR')
 M = 1
 seed = 12345
 
@@ -292,8 +292,8 @@ for(i in 1:nrow(risk_region)){
   
   
   R_anno = scale(annot_final_df)
-  # GK1ps_anno = GK_anno_M(z_scores_final, R_anno, M, LD, nsample)
-  GK1ps_anno = GK_anno_dss(z_scores_final, R_anno, M, LD, Neff)
+  GK1ps_anno = GK_anno_M(z_scores_final, R_anno, M, LD, nsample)
+  # GK1ps_anno = GK_anno_dss(z_scores_final, R_anno, M, LD, Neff)
   
   # beta <- GK1ps_anno$beta_final
   # T_0<-abs(beta[1:p])
@@ -324,9 +324,8 @@ result <- list(chr = chrid,
                lambda_s = lambda_s)
 
 other = paste(ancestry1, collapse = "_")
-#path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GK_anno/trait/result/result_",ancestry0, "_chr",chrid, '.RData')
-#path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/trait/annot_pvalus/result/result_", ancestry0, "_chr_AFR",chrid,".RData")
-path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/Height/annot_pvalus/result/", ancestry0, "_result_dss_", other, "_chr_",chrid, "_M_", M, "_", seed, ".RData")
+# path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/Height/annot_pvalus/result/", ancestry0, "_result_dss_", other, "_chr_",chrid, "_M_", M, "_", seed, ".RData")
+path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/Height/annot_pvalus/result/", ancestry0, "_result_final_10_", other, "_chr_",chrid, "_M_", M, "_", seed, ".RData")
 save(result, file = path)
 
 

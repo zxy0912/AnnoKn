@@ -24,15 +24,16 @@ sum2 = 0
 chrid = '1'
 M = 1
 seed = '12345'
+# seed = '12345' for dss
 
 
-chrlist = 1:22
+chrlist = (1:22)
 for(chrid in chrlist){
   print(paste0("chrid", chrid))
   ancestry0 = 'EUR'
   ancestry1 = c('AFR')
   other = paste(ancestry1, collapse = "_")
-  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/Height/annot_pvalus/result/", ancestry0, "_result_dss_", other, "_chr_",chrid, "_M_", M, "_", seed, ".RData")
+  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/Height/annot_pvalus/result/", ancestry0, "_result_final_", other, "_chr_",chrid, "_M_", M, "_", seed, ".RData")
   load(path)
   
   print(length(result$risk_region))
@@ -61,7 +62,7 @@ for(chrid in chrlist){
   ancestry0 = 'AFR'
   ancestry1 = c('EUR')
   other = paste(ancestry1, collapse = "_")
-  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/Height/annot_pvalus/result/", ancestry0, "_result_dss_", other, "_chr_",chrid, "_M_", M, "_", seed, ".RData")
+  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/Height/annot_pvalus/result/", ancestry0, "_result_final_", other, "_chr_",chrid, "_M_", M, "_", seed, ".RData")
   load(path)
   print(length(result$risk_region))
   
@@ -152,9 +153,4 @@ histogram_plot <- ggplot(df, aes(x = lambdas)) +
     axis.title = element_text(size = 12)
   )
 histogram_plot
-
-
-nrow(region_1) + nrow(region_2) - 263
-nrow(region_anno_1) + nrow(region_anno_2) - 288
-
 

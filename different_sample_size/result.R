@@ -13,14 +13,14 @@ power3 = matrix(0, nrow = iteration, ncol = len)
 power4 = matrix(0, nrow = iteration, ncol = len)
 power5 = matrix(0, nrow = iteration, ncol = len)
 power6 = matrix(0, nrow = iteration, ncol = len)
-power7 = matrix(0, nrow = iteration, ncol = len)
-power8 = matrix(0, nrow = iteration, ncol = len)
-power9 = matrix(0, nrow = iteration, ncol = len)
-power10 = matrix(0, nrow = iteration, ncol = len)
-power11 = matrix(0, nrow = iteration, ncol = len)
+# power7 = matrix(0, nrow = iteration, ncol = len)
+# power8 = matrix(0, nrow = iteration, ncol = len)
+# power9 = matrix(0, nrow = iteration, ncol = len)
+# power10 = matrix(0, nrow = iteration, ncol = len)
+# power11 = matrix(0, nrow = iteration, ncol = len)
 
-power_em = matrix(0, nrow = iteration, ncol = 1)
-power_em_gk = matrix(0, nrow = iteration, ncol = 1)
+# power_em = matrix(0, nrow = iteration, ncol = 1)
+# power_em_gk = matrix(0, nrow = iteration, ncol = 1)
 
 fdr1 = matrix(0, nrow = iteration, ncol = len)
 fdr2 = matrix(0, nrow = iteration, ncol = len)
@@ -28,13 +28,13 @@ fdr3 = matrix(0, nrow = iteration, ncol = len)
 fdr4 = matrix(0, nrow = iteration, ncol = len)
 fdr5 = matrix(0, nrow = iteration, ncol = len)
 fdr6 = matrix(0, nrow = iteration, ncol = len)
-fdr7 = matrix(0, nrow = iteration, ncol = len)
-fdr8 = matrix(0, nrow = iteration, ncol = len)
-fdr9 = matrix(0, nrow = iteration, ncol = len)
-fdr10 = matrix(0, nrow = iteration, ncol = len)
-fdr11 = matrix(0, nrow = iteration, ncol = len)
-fdr_em = matrix(0, nrow = iteration, ncol = 1)
-fdr_em_gk =matrix(0, nrow = iteration, ncol = 1)
+# fdr7 = matrix(0, nrow = iteration, ncol = len)
+# fdr8 = matrix(0, nrow = iteration, ncol = len)
+# fdr9 = matrix(0, nrow = iteration, ncol = len)
+# fdr10 = matrix(0, nrow = iteration, ncol = len)
+# fdr11 = matrix(0, nrow = iteration, ncol = len)
+# fdr_em = matrix(0, nrow = iteration, ncol = 1)
+# fdr_em_gk =matrix(0, nrow = iteration, ncol = 1)
 
 
 s = 0
@@ -47,7 +47,7 @@ N.effect = 5000 #
 p = 300
 
 for (i in 1:iteration) {
-  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/ghostknockoff/simulation/AnnoGK_simu/result/heri_",heri,"_n_",N.effect,"_p_",p, "_", i,".RData")
+  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/ghostknockoff/simulation/different_sample_size/result/heri_noneven_",heri,"_n_",N.effect,"_p_",p, "_", i,".RData")
   if (!file.exists(path)){
     print(paste("iteration",i,"doesn't exist"))
     removelist = append(removelist, i)
@@ -62,11 +62,11 @@ for (i in 1:iteration) {
   power4[i,] <- result$power4
   power5[i,] <- result$power5
   power6[i,] <- result$power6
-  power7[i,] <- result$power7
-  power8[i,] <- result$power8
-  power9[i,] <- result$power9
-  power10[i,] <- result$power10
-  power11[i,] <- result$power11
+  # power7[i,] <- result$power7
+  # power8[i,] <- result$power8
+  # power9[i,] <- result$power9
+  # power10[i,] <- result$power10
+  # power11[i,] <- result$power11
   
   fdr1[i,]   <- result$fdr1
   fdr2[i,]   <- result$fdr2
@@ -74,11 +74,11 @@ for (i in 1:iteration) {
   fdr4[i,]   <- result$fdr4
   fdr5[i,]   <- result$fdr5
   fdr6[i,]   <- result$fdr6
-  fdr7[i,]   <- result$fdr7
-  fdr8[i,]   <- result$fdr8
-  fdr9[i,]   <- result$fdr9
-  fdr10[i,]   <- result$fdr10
-  fdr11[i,]   <- result$fdr11
+  # fdr7[i,]   <- result$fdr7
+  # fdr8[i,]   <- result$fdr8
+  # fdr9[i,]   <- result$fdr9
+  # fdr10[i,]   <- result$fdr10
+  # fdr11[i,]   <- result$fdr11
   
 }
 
@@ -104,48 +104,43 @@ for (i in 1:iteration) {
 
 power <- c(
   colMeans(power1, na.rm = TRUE),
-  # colMeans(power2, na.rm = TRUE),
+  colMeans(power2, na.rm = TRUE),
   colMeans(power3, na.rm = TRUE),
   colMeans(power4, na.rm = TRUE),  
-  # colMeans(power5, na.rm = TRUE),
-  colMeans(power6, na.rm = TRUE),  
-  colMeans(power7, na.rm = TRUE),
-  colMeans(power8, na.rm = TRUE),
+  colMeans(power5, na.rm = TRUE),
+  colMeans(power6, na.rm = TRUE)  
+  # colMeans(power7, na.rm = TRUE),
+  # colMeans(power8, na.rm = TRUE),
   # colMeans(power9, na.rm = TRUE), 
-  colMeans(power10, na.rm = TRUE),
-  colMeans(power11, na.rm = TRUE) 
+  # colMeans(power10, na.rm = TRUE),
+  # colMeans(power11, na.rm = TRUE) 
 )
 
 
 fdr <- c(
   colMeans(fdr1, na.rm = TRUE),
-  # colMeans(fdr2, na.rm = TRUE),
+  colMeans(fdr2, na.rm = TRUE),
   colMeans(fdr3, na.rm = TRUE),
   colMeans(fdr4, na.rm = TRUE),
-  # colMeans(fdr5, na.rm = TRUE),
-  colMeans(fdr6, na.rm = TRUE),
-  colMeans(fdr7, na.rm = TRUE),
-  colMeans(fdr8, na.rm = TRUE),
+  colMeans(fdr5, na.rm = TRUE),
+  colMeans(fdr6, na.rm = TRUE)
+  # colMeans(fdr7, na.rm = TRUE),
+  # colMeans(fdr8, na.rm = TRUE),
   # colMeans(fdr9, na.rm = TRUE),
-  colMeans(fdr10, na.rm = TRUE),
-  colMeans(fdr11, na.rm = TRUE)
+  # colMeans(fdr10, na.rm = TRUE),
+  # colMeans(fdr11, na.rm = TRUE)
 )
 
 
-name_method <- c('Knockoff', 
-                 # 'AnnoKn-simple', 
-                 'AnnoKn', 
-                 'GhostKnockoff', 
-                 # 'AnnoGK-simple',
+name_method <- c('GhostKnockoff', 
                  'AnnoGK',
                  'AnnoGK-dss', 
-                 'GhostKnockoff M=5', 
-                 # 'AnnoGK-simple M=5',
+                 'GhostKnockoff M=5',
                  'AnnoGK M=5', 
                  'AnnoGK-dss M=5')
 
 method <- rep(name_method, each = len)
-plot_data <- data.frame(alpha = rep(alphalist, 8),
+plot_data <- data.frame(alpha = rep(alphalist, 6),
                         method = method,
                         power = power,
                         fdr = fdr)

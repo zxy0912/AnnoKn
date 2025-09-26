@@ -50,13 +50,27 @@ obj_fun_gk <- function(lam, lambda_0, beta, R, n, d = 20, M = 5){
   return(part1 + part2 + part3)
 }
 
+obj_fun_gk = obj_fun_gk_old
 
-weight_standardized <- function(lam, R, d = 20){
+
+# weight_standardized <- function(lam, R, d = 20){
+#   p = nrow(R)
+#   eta <- as.vector(R %*% lam) / d
+#   max_eta = max(eta)
+#   w <- exp(eta - max_eta) * p / (sum(exp(eta - max_eta)))
+#   return(w)
+# }
+
+
+weight_standardized <- function(lam, R){
+  print("use non-standardized weights")
+  d = 10 * max(abs(R))
   p = nrow(R)
   eta <- as.vector(R %*% lam) / d
   max_eta = max(eta)
-  w <- exp(eta - max_eta) * p / (sum(exp(eta - max_eta)))
+  w <- exp(eta)
   return(w)
+  
 }
 
 
@@ -733,10 +747,10 @@ GK_anno_dss <- function(Z, R, M = 1, LD, N.effect, ts = 'lasso'){
     # obj_cor_old <- cv_func(r_all = r_all, temp.A = temp.A, A.left = fit.prelim$A.left, lambda.seq = coeff*lambda.seq, 
     #                    Prior = GKanno_M1_anno_ps$Prior, n = n, nfold = 5)
     
-    obj_cor <- cv_func_dss(r_all = r_all, temp.A = temp.A, A.left = fit.prelim$A.left, 
+    obj_cor <- cv_func_dss(r_all = r_all, temp.A = temp.A, temp.A.modi = temp.A.modi, A.left = fit.prelim$A.left, 
                            lambda.seq = coeff*lambda.seq, 
                            Prior = GKanno_M1_anno_ps$Prior, N.effect = N.effect, 
-                           M = M, nfold = 5, temp.A.modi = temp.A.modi)
+                           M = M, nfold = 5)
     
     obj_cor_list <- append(obj_cor_list, obj_cor)
     
@@ -761,7 +775,7 @@ GK_anno_dss <- function(Z, R, M = 1, LD, N.effect, ts = 'lasso'){
 
 
 
-cv_func_dss <- function(r_all, temp.A, A.left, lambda.seq, Prior, N.effect, M = M, nfold = 5, temp.A.modi){
+cv_func_dss <- function(r_all, temp.A, temp.A.modi, A.left, lambda.seq, Prior, N.effect, M = M, nfold = 5){
   # nA<-n*(nfold-1)/nfold;nB<-n/nfold
   # temp.left<-sqrt(nB/nA/n)*as.matrix(A.left)
   # r_all_A<-r_all+as.matrix(temp.left%*%matrix(rnorm(ncol(temp.left)),ncol(temp.left),1))
