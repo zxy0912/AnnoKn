@@ -28,8 +28,8 @@ bedNA <- function(bed1){
 
 
 ################ load the summary statistics
-ancestry0 = 'AFR'
-ancestry1 = c('EUR')
+ancestry0 = 'EUR'
+ancestry1 = c('AFR')
 M = 1
 seed = 12345
 
@@ -167,7 +167,7 @@ for(i in 1:nrow(risk_region)){
   
   z_scores = trait_region$Beta/trait_region$SE
   R = cor(X_region)
-  nsample <- mean(trait_region$Neff)
+  nsample <- median(trait_region$Neff)
   Neff <- trait_region$Neff
   
   
@@ -251,7 +251,7 @@ for(i in 1:nrow(risk_region)){
   # annot_final = data.frame(position = trait_region[index, 2])
   annot_final = trait_region[index, c(2,(ncol(trait_region) - m_annot + 1):ncol(trait_region))]
   # colnames(annot_final)[1] = 'Position'
-  nsample= mean(trait_region$Neff[index])
+  nsample= median(trait_region$Neff[index])
   Neff = trait_region$Neff[index]
   
   ##########
@@ -325,7 +325,7 @@ result <- list(chr = chrid,
 
 other = paste(ancestry1, collapse = "_")
 # path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/Height/annot_pvalus/result/", ancestry0, "_result_dss_", other, "_chr_",chrid, "_M_", M, "_", seed, ".RData")
-path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/Height/annot_pvalus/result/", ancestry0, "_result_final_10_", other, "_chr_",chrid, "_M_", M, "_", seed, ".RData")
+path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/Height/annot_pvalus/result/", ancestry0, "_result_final_10_median_", other, "_chr_",chrid, "_M_", M, "_", seed, ".RData")
 save(result, file = path)
 
 

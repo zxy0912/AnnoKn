@@ -42,12 +42,12 @@ removelist = c()
 
 binary = ''
 dimen = 'double'
-heri = 0.05
+heri = 0.1
 N.effect = 5000 #
 p = 300
 
 for (i in 1:iteration) {
-  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/ghostknockoff/simulation/different_sample_size/result/heri_noneven_",heri,"_n_",N.effect,"_p_",p, "_", i,".RData")
+  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/ghostknockoff/simulation/different_sample_size/result/heri_noneven_final_",heri,"_n_",N.effect,"_p_",p, "_", i,".RData")
   if (!file.exists(path)){
     print(paste("iteration",i,"doesn't exist"))
     removelist = append(removelist, i)
@@ -146,10 +146,34 @@ plot_data <- data.frame(alpha = rep(alphalist, 6),
                         fdr = fdr)
 
 
+methods <- c('GhostKnockoff', 
+             'AnnoGK',
+             'AnnoGK-dss', 
+             'GhostKnockoff M=5',
+             'AnnoGK M=5', 
+             'AnnoGK-dss M=5')
+
+
+colors <- c("GhostKnockoff" = "#7570b3",     
+            "AnnoGK" = "#e7298a",            
+            "GhostKnockoff M=5" = "#66a61e", 
+            "AnnoGK-dss" = "#1f78b4",        
+            "AnnoGK M=5" = "#e6ab02",        
+            "AnnoGK-dss M=5" = "#a6761d")    
+
+shapes <- c("GhostKnockoff" = 15,    
+            "AnnoGK" = 3,            
+            "GhostKnockoff M=5" = 8, 
+            "AnnoGK M=5" = 4,        
+            "AnnoGK-dss" = 14,       
+            "AnnoGK-dss M=5" = 18)   
+
 p1 <- ggplot(plot_data, aes(x = alpha, y = power, color = method, shape = method)) +
   geom_line() +
   geom_point() +
   labs(x = "Target FDR", y = "Power") +
+  scale_color_manual(values = colors, breaks = methods) +
+  scale_shape_manual(values = shapes, breaks = methods) +
   theme_minimal()
 
 p2 <- ggplot(plot_data, aes(x = alpha, y = fdr, color = method, shape = method)) +
@@ -157,8 +181,12 @@ p2 <- ggplot(plot_data, aes(x = alpha, y = fdr, color = method, shape = method))
   geom_point() +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "black") +
   labs(x = "Target FDR", y = "FDR") +
+  scale_color_manual(values = colors, breaks = methods) +
+  scale_shape_manual(values = shapes, breaks = methods) +
   theme_minimal()
 
 library(gridExtra)
 grid.arrange(p1, p2, ncol = 2)
+
+
 

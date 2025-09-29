@@ -44,10 +44,10 @@ binary = ''
 dimen = 'double'
 heri = 0.05
 N.effect = 5000 #
-p = 300
+p = 1000
 
 for (i in 1:iteration) {
-  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/ghostknockoff/simulation/AnnoGK_simu/result/heri_",heri,"_n_",N.effect,"_p_",p, "_", i,".RData")
+  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/ghostknockoff/simulation/AnnoGK_simu/result/heri_final_10_",heri,"_n_",N.effect,"_p_",p, "_", i,".RData")
   if (!file.exists(path)){
     print(paste("iteration",i,"doesn't exist"))
     removelist = append(removelist, i)
@@ -104,14 +104,14 @@ for (i in 1:iteration) {
 
 power <- c(
   colMeans(power1, na.rm = TRUE),
-  # colMeans(power2, na.rm = TRUE),
+  colMeans(power2, na.rm = TRUE),
   colMeans(power3, na.rm = TRUE),
   colMeans(power4, na.rm = TRUE),  
-  # colMeans(power5, na.rm = TRUE),
+  colMeans(power5, na.rm = TRUE),
   colMeans(power6, na.rm = TRUE),  
   colMeans(power7, na.rm = TRUE),
   colMeans(power8, na.rm = TRUE),
-  # colMeans(power9, na.rm = TRUE), 
+  colMeans(power9, na.rm = TRUE), 
   colMeans(power10, na.rm = TRUE),
   colMeans(power11, na.rm = TRUE) 
 )
@@ -119,42 +119,62 @@ power <- c(
 
 fdr <- c(
   colMeans(fdr1, na.rm = TRUE),
-  # colMeans(fdr2, na.rm = TRUE),
+  colMeans(fdr2, na.rm = TRUE),
   colMeans(fdr3, na.rm = TRUE),
   colMeans(fdr4, na.rm = TRUE),
-  # colMeans(fdr5, na.rm = TRUE),
+  colMeans(fdr5, na.rm = TRUE),
   colMeans(fdr6, na.rm = TRUE),
   colMeans(fdr7, na.rm = TRUE),
   colMeans(fdr8, na.rm = TRUE),
-  # colMeans(fdr9, na.rm = TRUE),
+  colMeans(fdr9, na.rm = TRUE),
   colMeans(fdr10, na.rm = TRUE),
   colMeans(fdr11, na.rm = TRUE)
 )
 
 
 name_method <- c('Knockoff', 
-                 # 'AnnoKn-simple', 
+                 'AnnoKn-simple', 
                  'AnnoKn', 
                  'GhostKnockoff', 
-                 # 'AnnoGK-simple',
+                 'AnnoGK-simple',
                  'AnnoGK',
                  'AnnoGK-dss', 
                  'GhostKnockoff M=5', 
-                 # 'AnnoGK-simple M=5',
+                 'AnnoGK-simple M=5',
                  'AnnoGK M=5', 
                  'AnnoGK-dss M=5')
 
 method <- rep(name_method, each = len)
-plot_data <- data.frame(alpha = rep(alphalist, 8),
+plot_data <- data.frame(alpha = rep(alphalist, 11),
                         method = method,
                         power = power,
                         fdr = fdr)
 
+plot_data <- plot_data[plot_data$method %in% c('Knockoff', 'AnnoKn', 'GhostKnockoff','AnnoGK','GhostKnockoff M=5','AnnoGK M=5'),]
+
+methods <- c("Knockoff", "AnnoKn", "GhostKnockoff",
+             "AnnoGK", "GhostKnockoff M=5", "AnnoGK M=5")
+
+colors <- c("Knockoff" = "#1b9e77",
+            "AnnoKn" = "#d95f02",
+            "GhostKnockoff" = "#7570b3",
+            "AnnoGK" = "#e7298a",
+            "GhostKnockoff M=5" = "#66a61e",
+            "AnnoGK M=5" = "#e6ab02")
+
+shapes <- c("Knockoff" = 16,
+            "AnnoKn" = 17,
+            "GhostKnockoff" = 15,
+            "AnnoGK" = 3,
+            "GhostKnockoff M=5" = 8,
+            "AnnoGK M=5" = 4)
 
 p1 <- ggplot(plot_data, aes(x = alpha, y = power, color = method, shape = method)) +
   geom_line() +
   geom_point() +
   labs(x = "Target FDR", y = "Power") +
+  scale_color_manual(values = colors, breaks = methods) +
+  scale_shape_manual(values = shapes, breaks = methods) +
   theme_minimal()
 
 p2 <- ggplot(plot_data, aes(x = alpha, y = fdr, color = method, shape = method)) +
@@ -162,6 +182,8 @@ p2 <- ggplot(plot_data, aes(x = alpha, y = fdr, color = method, shape = method))
   geom_point() +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "black") +
   labs(x = "Target FDR", y = "FDR") +
+  scale_color_manual(values = colors, breaks = methods) +
+  scale_shape_manual(values = shapes, breaks = methods) +
   theme_minimal()
 
 library(gridExtra)

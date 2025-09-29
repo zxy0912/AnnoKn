@@ -1,10 +1,15 @@
 
+
 ########## check the risk region for different CHRs
 s = numeric()
 
 for(chrid in 1:22){
-  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/Height/annot_pvalus/risk_region/","EUR","_chr_", chrid,".txt")
+  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/AD_new/annot_pvalus/risk_region/","GWAS1","_chr_", chrid,".txt")
   risk_region <- read.table(path)
+  if(any(is.na(risk_region))){
+    s = append(s, 0)
+    next
+  }
   print(dim(risk_region))
   s = append(s, nrow(risk_region))
 }
@@ -23,20 +28,24 @@ sum1 = 0
 sum2 = 0
 chrid = '1'
 M = 1
-seed = '12345'
+seed = '1000'
 # seed = '12345' for dss
 
 
-chrlist = (1:22)[c(-17)]
+chrlist = (1:22)
 for(chrid in chrlist){
   print(paste0("chrid", chrid))
-  ancestry0 = 'EUR'
-  ancestry1 = c('AFR')
-  other = paste(ancestry1, collapse = "_")
-  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/Height/annot_pvalus/result/", ancestry0, "_result_final_10_", other, "_chr_",chrid, "_M_", M, "_", seed, ".RData")
+  study1 = 'GWAS1'
+  study2 = c('GWAS2')
+  other = paste(study2, collapse = "_")
+  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/AD_new/annot_pvalus/result/", study1, "_result_final_10_median_", other, "_chr_",chrid, "_M_", M, "_", seed, ".RData")
   load(path)
   
   print(length(result$risk_region))
+  
+  if(length(result$risk_region) == 0){
+    next
+  }
   
   q_gk = result$q_gk
   q_gkanno = result$q_gkanno
@@ -54,17 +63,25 @@ for(chrid in chrlist){
     # print(which(b <= threshold))
     if(sum(b <= threshold) > 0){
       region_anno_1 <- rbind(region_anno_1, as.numeric(append(chrid, result$risk_region[[i]])))
-      lambdas1 <- append(lambdas1, result$lambda_s[[i]])
     }
+    lambdas1 <- append(lambdas1, result$lambda_s[[i]])
   }
-  
-  
-  ancestry0 = 'AFR'
-  ancestry1 = c('EUR')
-  other = paste(ancestry1, collapse = "_")
-  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/Height/annot_pvalus/result/", ancestry0, "_result_final_10_", other, "_chr_",chrid, "_M_", M, "_", seed, ".RData")
+}  
+ 
+chrlist = (1:22)
+for(chrid in chrlist){
+  print(paste0("chrid", chrid)) 
+  study1 = 'GWAS2'
+  study2 = c('GWAS1')
+  other = paste(study2, collapse = "_")
+  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/AD_new/annot_pvalus/result/", study1, "_result_final_10_median_", other, "_chr_",chrid, "_M_", M, "_", seed, ".RData")
   load(path)
+  
   print(length(result$risk_region))
+  
+  if(length(result$risk_region) == 0){
+    next
+  }
   
   q_gk = result$q_gk
   q_gkanno = result$q_gkanno
@@ -77,13 +94,15 @@ for(chrid in chrlist){
     a = q_gk[[i]]
     if(sum(a <= threshold) > 0){
       region_2 <- rbind(region_2, as.numeric(append(chrid, result$risk_region[[i]])))
+    }else{
+      print(FALSE)
     }
     b = q_gkanno[[i]]
     # print(which(b <= threshold))
     if(sum(b <= threshold) > 0){
       region_anno_2 <- rbind(region_anno_2, as.numeric(append(chrid, result$risk_region[[i]])))
-      lambdas2 <- append(lambdas2, result$lambda_s[[i]])
     }
+    lambdas2 <- append(lambdas2, result$lambda_s[[i]])
   }
   
 }
@@ -121,7 +140,7 @@ histogram_plot <- ggplot(df, aes(x = lambdas)) +
     alpha = 0.8     
   ) +
   labs(
-    title = "Distribution of lambda_s of AFR p-values for EUR GWAS",
+    title = "Distribution of lambda_s of GWAS2 p-values for GWAS1",
     x = "Lambda_s",            
     y = "Frequency (Count)"         
   ) +
@@ -143,7 +162,7 @@ histogram_plot <- ggplot(df, aes(x = lambdas)) +
     alpha = 0.8     
   ) +
   labs(
-    title = "Distribution of lambda_s of EUR p-values for AFR GWAS",
+    title = "Distribution of lambda_s of GWAS1 p-values for GWAS2",
     x = "Lambda_s",            
     y = "Frequency (Count)"         
   ) +

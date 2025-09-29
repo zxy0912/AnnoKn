@@ -453,7 +453,7 @@ for (heri in c(0.05, 0.1, 0.2)){
     )
     
     # path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/ghostknockoff/simulation/AnnoGK_simu/result/heri_",heri,"_n_",N.effect,"_p_",p, "_", i,".RData")
-    path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/ghostknockoff/simulation/AnnoGK_simu/result/heri_final_",heri,"_n_",N.effect,"_p_",p, "_", i,".RData")
+    path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/ghostknockoff/simulation/AnnoGK_simu/result/heri_final_10_",heri,"_n_",N.effect,"_p_",p, "_", i,".RData")
     
     dir <- dirname(path)
     if (!dir.exists(dir)) {

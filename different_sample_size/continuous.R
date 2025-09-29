@@ -25,7 +25,7 @@ fdr_seq  <- seq(0.4, 0.1, by = -0.05)
 len = length(fdr_seq)
 
 for (heri in c(0.05, 0.1, 0.2)){
-  for (p in c(300, 600, 1000)){
+  for (p in c(300)){
     set.seed(seed)
     power1 = numeric(len) 
     power2 = numeric(len) 
