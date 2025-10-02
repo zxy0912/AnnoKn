@@ -1,5 +1,12 @@
 ############ check the total number of risk genes:
 
+
+pc = 5
+# chrid = 1
+lnc = FALSE
+celltype = "Whole_Blood"
+number_gene <- numeric()
+
 for(chrid in as.character(1:22)){
   print(chrid)
   library(data.table)
@@ -19,11 +26,7 @@ for(chrid in as.character(1:22)){
     return(bed1)
   }
   
-  
-  pc = 5
-  # chrid = 1
-  lnc = FALSE
-  celltype = "Whole_Blood"
+
   
   gexp_path = paste0('/gpfs/gibbs/pi/zhao/jz874/jiazhao/Xiangyu/TWAS_fm/GTEx_Gene_expression_adjust_covariates/adjusted_expr_age_sex_',pc,'genopcs_5peers')
   
@@ -95,6 +98,7 @@ for(chrid in as.character(1:22)){
   
   risk_gene <- risk_gene[remain,]
   print(dim(risk_gene))
+  number_gene <- append(number_gene, nrow(risk_gene))
 }
 
 
@@ -103,7 +107,19 @@ for(chrid in as.character(1:22)){
 
 
 
-
+celltype = "Whole_Blood"
+celltype = "Muscle_Skeletal"
+celltype = "Adipose_Subcutaneous"
+celltype = "Artery_Tibial"
+celltype = "Adipose_Visceral_Omentum"
+celltype = "Brain_Cortex"
+celltype = "Bladder"
+celltype = "Pancreas"
+celltype = "Liver"
+celltype = "Thyroid"
+celltype = "Skin_Sun_Exposed_Lower_leg"
+celltype = "Nerve_Tibial"
+celltype = "Breast_Mammary_Tissue"
 
 knockoff.threshold <- function (W, fdr = 0.1, offset = 1){
   if (offset != 1 && offset != 0) {
@@ -136,7 +152,7 @@ for(chrid in as.character(1:22)){
   
   for(gene_i in 1:2000){
     print(gene_i)
-    path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GTEx/result_500k_enhancer/chr_", chrid,"_gene_", gene_i, ".RData")
+    path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GTEx/result_new_500k_enhancer/chr_", chrid,"_gene_", gene_i, "_ct_", celltype, ".RData")
     
     if (!file.exists(path)) {
       message("not exist: ", path)

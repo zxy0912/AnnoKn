@@ -33,6 +33,9 @@ for (heri in c(0.05, 0.1, 0.2)){
     power4 = numeric(len) 
     power5 = numeric(len)
     power6 = numeric(len) 
+    power7 = numeric(len)
+    power8 = numeric(len) 
+    power9 = numeric(len) 
     
     
     fdr1 = numeric(len)
@@ -41,6 +44,9 @@ for (heri in c(0.05, 0.1, 0.2)){
     fdr4 = numeric(len)
     fdr5 = numeric(len)
     fdr6 = numeric(len)
+    fdr7 = numeric(len)
+    fdr8 = numeric(len)
+    fdr9 = numeric(len)
     
     
     amplitude = sqrt(heri/(1-heri))
@@ -132,6 +138,29 @@ for (heri in c(0.05, 0.1, 0.2)){
       fdr1[j] = fdr_cal(rej1, rand)
     }
     
+    ### check the ghostknockoff with median sample size
+    
+    start <- Sys.time()
+    set.seed(seed)
+    fit.prelim <- GhostKnockoff.prelim(
+      cor.G   = LD,
+      M       = M,
+      method  = "sdp" 
+    )
+    GK1_lasso <- GhostKnockoff.fit(Z, N.median, fit.prelim, method='lasso')
+    GK.filter<-GhostKnockoff.filter(GK1_lasso$T_0[[1]],GK1_lasso$T_k[[1]])
+    
+    end <- Sys.time()
+    time9 <- as.numeric(difftime(end, start, units = "secs"))
+    
+    for (j in 1:len){
+      threshold = alphalist[j]
+      rej9 <- which(GK.filter$q <= threshold)
+      
+      power9[j] = power_cal(rej9, rand)
+      fdr9[j] = fdr_cal(rej9, rand)
+    }
+    
     
     ############# 2. AnnoGK
     
@@ -183,6 +212,31 @@ for (heri in c(0.05, 0.1, 0.2)){
       power3[j] = power_cal(rej3, rand)
       fdr3[j] = fdr_cal(rej3, rand)
     }
+    
+    ############# 7. AnnoGK with different sample size only for r_all
+    
+    start <- Sys.time()
+    set.seed(seed)
+    GK1ps_anno = GK_anno_M_N(Z, R, M, LD, N.effect)
+    
+    
+    beta <- GK1ps_anno$beta_final
+    T_0<-GK1ps_anno$T_0
+    T_k<-GK1ps_anno$T_k
+    
+    GK.filter<-GhostKnockoff.filter(T_0,T_k)
+    
+    end <- Sys.time()
+    time7 <- as.numeric(difftime(end, start, units = "secs"))
+    
+    for (j in 1:len){
+      threshold = alphalist[j]
+      rej7 <- which(GK.filter$q <= threshold)
+      power7[j] = power_cal(rej7, rand)
+      fdr7[j] = fdr_cal(rej7, rand)
+    }
+    
+    
     
     
     ############# 4. ghosknockoff M = 5
@@ -256,29 +310,63 @@ for (heri in c(0.05, 0.1, 0.2)){
     
     
     
+   
+    
+    ############# 8. AnnoGK with different sample size only for r_all M = 5
+    start <- Sys.time()
+    set.seed(seed)
+    GK5ps_anno = GK_anno_M_N(Z, R, M = 5, LD, N.effect)
+    
+    
+    beta <- GK5ps_anno$beta_final
+    T_0<-GK5ps_anno$T_0
+    T_k<-GK5ps_anno$T_k
+    
+    GK.filter<-GhostKnockoff.filter(T_0,T_k)
+    
+    end <- Sys.time()
+    time8 <- as.numeric(difftime(end, start, units = "secs"))
+    
+    for (j in 1:len){
+      threshold = alphalist[j]
+      rej8 <- which(GK.filter$q <= threshold)
+      power8[j] = power_cal(rej8, rand)
+      fdr8[j] = fdr_cal(rej8, rand)
+    }
+    
+    
     result = list(power1 = power1, 
                   power2 = power2, 
                   power3 = power3,
                   power4 = power4, 
                   power5 = power5, 
                   power6 = power6, 
+                  power7 = power7, 
+                  power8 = power8,
+                  power9 = power9,
                   fdr1 = fdr1,
                   fdr2 = fdr2,
                   fdr3 = fdr3,
                   fdr4 = fdr4,
                   fdr5 = fdr5,
                   fdr6 = fdr6,
+                  fdr7 = fdr7,
+                  fdr8 = fdr8,
+                  fdr9 = fdr9,
                   time1 = time1,
                   time2 = time2,
                   time3 = time3,
                   time4 = time4,
                   time5 = time5,
                   time6 = time6,
+                  time7 = time7,
+                  time8 = time8,
+                  time9 = time9,
                   h2e = h2e
     )
     
     # path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/ghostknockoff/simulation/different_sample_size/result/heri_noneven_",heri,"_n_",N,"_p_",p, "_", i,".RData")
-    path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/ghostknockoff/simulation/different_sample_size/result/heri_noneven_final_",heri,"_n_",N,"_p_",p, "_", i,".RData")
+    path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/ghostknockoff/simulation/different_sample_size/result/heri_noneven_final_10_",heri,"_n_",N,"_p_",p, "_", i,".RData")
     # noneven: different sample size
     # final: use part2 + part3, and also non-standardized weights
     

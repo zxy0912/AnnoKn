@@ -1,4 +1,42 @@
 
+########### make the manhatten plot
+library("qqman")
+
+path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GK_anno/AD_new/", "GWAS1",".txt")
+sum_s_1 <- read.table(path, header = TRUE)
+sum_s <- sum_s_1[sum_s_1$p<0.001,]
+p <- manhattan(sum_s, chr = "chr", bp = "pos", p = "p", snp = "SNP", # main=paste("Manhattan plot for the first AD GWAS"), 
+               col = c("red4","red","orange","gold","darkgreen","forestgreen","yellowgreen","darkcyan","darkblue","royalblue1", "blue","dodgerblue","deepskyblue","skyblue1","purple4","darkmagenta","violetred","hotpink","palevioletred","lightpink","chocolate4","lightgray","gray28"), 
+               ylim=c(0,150),chrlabs = NULL,suggestiveline = -log10(5e-06), genomewideline = -log10(5e-08),highlight = NULL, 
+               logp = TRUE, annotatePval = NULL, annotateTop = TRUE)
+p
+
+path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GK_anno/AD_new/", "GWAS2",".txt")
+sum_s_2 <- read.table(path, header = TRUE)
+sum_s_2$p[which(sum_s_2$p < 10^(-140))] = 10^(-140)
+
+sum_s <- sum_s_2[sum_s_2$p<0.001,]
+q <- manhattan(sum_s, chr = "chr", bp = "pos", p = "p", snp = "SNP", # main=paste("Manhattan plot for the second AD GWAS"), 
+               col = c("red4","red","orange","gold","darkgreen","forestgreen","yellowgreen","darkcyan","darkblue","royalblue1", "blue","dodgerblue","deepskyblue","skyblue1","purple4","darkmagenta","violetred","hotpink","palevioletred","lightpink","chocolate4","lightgray","gray28"), 
+               ylim=c(0,150),chrlabs = NULL,suggestiveline = -log10(5e-06), genomewideline = -log10(5e-08),highlight = NULL, 
+               logp = TRUE, annotatePval = NULL, annotateTop = TRUE)
+q
+
+
+
+
+
+
+
+
+merged <- merge(sum_s_1[, c("SNP", "p")], 
+                sum_s_2[, c("SNP", "p")], 
+                by = "SNP", 
+                suffixes = c("_1", "_2"))
+merged$logp1 <- -log10(merged$p_1)
+merged$logp2 <- -log10(merged$p_2)
+correlation <- cor(merged$logp1, merged$logp2, use = "complete.obs")
+
 
 ########## check the risk region for different CHRs
 s = numeric()
@@ -27,8 +65,8 @@ threshold = 0.1
 sum1 = 0
 sum2 = 0
 chrid = '1'
-M = 1
-seed = '1000'
+M = 3
+seed = '1234'
 # seed = '12345' for dss
 
 

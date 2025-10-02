@@ -40,6 +40,7 @@ if(ancestry0 == 'AFR'){
 }
 path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GK_anno/Height/GIANT_HEIGHT_YENGO_2022_GWAS_SUMMARY_STATS_", ancestry)
 sum_s <- read.table(path, header = TRUE, sep = '\t')
+# we also checked that all SNPs are in (A,T,G,C)
 colnames(sum_s) <- c("SNPID", "SNP", "Chromsome","Position", "EffectAllele", "NonEffectAllele", "EffectAF", "Beta", "SE","Pval","Neff")
 sum_s[[ancestry]] <- sum_s$Pval
 print(length(unique(sum_s$SNP)) == nrow(sum_s))

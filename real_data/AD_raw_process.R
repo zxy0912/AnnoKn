@@ -60,9 +60,23 @@ AD_new_clean <- AD_new %>%
 
 AD_new_sorted <- arrange(AD_new_clean, chr, pos)
 
+
+
 ######################################### save the data ########################################
 write.table(AD_new_sorted,"/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GK_anno/AD_new/GWAS2.txt", 
             row.names = FALSE, quote = FALSE, col.names = TRUE)
+
+path <- c("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GK_anno/AD_new/GWAS2.txt")
+AD_new_sorted <- read.table(path, header = TRUE)
+
+valid_nucleotides <- c("A", "C", "G", "T")
+AD_new_cleaned <- AD_new_sorted %>%
+  filter(
+    A1 %in% valid_nucleotides &
+      A2 %in% valid_nucleotides
+  )
+head(AD_new_cleaned)
+### all SNPs have good, thus don't need to do this step
 ################################################################################################
 
 

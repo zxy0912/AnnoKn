@@ -13,9 +13,9 @@ power3 = matrix(0, nrow = iteration, ncol = len)
 power4 = matrix(0, nrow = iteration, ncol = len)
 power5 = matrix(0, nrow = iteration, ncol = len)
 power6 = matrix(0, nrow = iteration, ncol = len)
-# power7 = matrix(0, nrow = iteration, ncol = len)
-# power8 = matrix(0, nrow = iteration, ncol = len)
-# power9 = matrix(0, nrow = iteration, ncol = len)
+power7 = matrix(0, nrow = iteration, ncol = len)
+power8 = matrix(0, nrow = iteration, ncol = len)
+power9 = matrix(0, nrow = iteration, ncol = len)
 # power10 = matrix(0, nrow = iteration, ncol = len)
 # power11 = matrix(0, nrow = iteration, ncol = len)
 
@@ -28,9 +28,9 @@ fdr3 = matrix(0, nrow = iteration, ncol = len)
 fdr4 = matrix(0, nrow = iteration, ncol = len)
 fdr5 = matrix(0, nrow = iteration, ncol = len)
 fdr6 = matrix(0, nrow = iteration, ncol = len)
-# fdr7 = matrix(0, nrow = iteration, ncol = len)
-# fdr8 = matrix(0, nrow = iteration, ncol = len)
-# fdr9 = matrix(0, nrow = iteration, ncol = len)
+fdr7 = matrix(0, nrow = iteration, ncol = len)
+fdr8 = matrix(0, nrow = iteration, ncol = len)
+fdr9 = matrix(0, nrow = iteration, ncol = len)
 # fdr10 = matrix(0, nrow = iteration, ncol = len)
 # fdr11 = matrix(0, nrow = iteration, ncol = len)
 # fdr_em = matrix(0, nrow = iteration, ncol = 1)
@@ -42,12 +42,12 @@ removelist = c()
 
 binary = ''
 dimen = 'double'
-heri = 0.1
+heri = 0.05
 N.effect = 5000 #
 p = 300
 
 for (i in 1:iteration) {
-  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/ghostknockoff/simulation/different_sample_size/result/heri_noneven_final_",heri,"_n_",N.effect,"_p_",p, "_", i,".RData")
+  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/ghostknockoff/simulation/different_sample_size/result/heri_noneven_final_10_",heri,"_n_",N.effect,"_p_",p, "_", i,".RData")
   if (!file.exists(path)){
     print(paste("iteration",i,"doesn't exist"))
     removelist = append(removelist, i)
@@ -62,9 +62,9 @@ for (i in 1:iteration) {
   power4[i,] <- result$power4
   power5[i,] <- result$power5
   power6[i,] <- result$power6
-  # power7[i,] <- result$power7
-  # power8[i,] <- result$power8
-  # power9[i,] <- result$power9
+  power7[i,] <- result$power7
+  power8[i,] <- result$power8
+  power9[i,] <- result$power9
   # power10[i,] <- result$power10
   # power11[i,] <- result$power11
   
@@ -74,9 +74,9 @@ for (i in 1:iteration) {
   fdr4[i,]   <- result$fdr4
   fdr5[i,]   <- result$fdr5
   fdr6[i,]   <- result$fdr6
-  # fdr7[i,]   <- result$fdr7
-  # fdr8[i,]   <- result$fdr8
-  # fdr9[i,]   <- result$fdr9
+  fdr7[i,]   <- result$fdr7
+  fdr8[i,]   <- result$fdr8
+  fdr9[i,]   <- result$fdr9
   # fdr10[i,]   <- result$fdr10
   # fdr11[i,]   <- result$fdr11
   
@@ -108,10 +108,10 @@ power <- c(
   colMeans(power3, na.rm = TRUE),
   colMeans(power4, na.rm = TRUE),  
   colMeans(power5, na.rm = TRUE),
-  colMeans(power6, na.rm = TRUE)  
-  # colMeans(power7, na.rm = TRUE),
-  # colMeans(power8, na.rm = TRUE),
-  # colMeans(power9, na.rm = TRUE), 
+  colMeans(power6, na.rm = TRUE),  
+  colMeans(power7, na.rm = TRUE),
+  colMeans(power8, na.rm = TRUE),
+  colMeans(power9, na.rm = TRUE) 
   # colMeans(power10, na.rm = TRUE),
   # colMeans(power11, na.rm = TRUE) 
 )
@@ -123,50 +123,65 @@ fdr <- c(
   colMeans(fdr3, na.rm = TRUE),
   colMeans(fdr4, na.rm = TRUE),
   colMeans(fdr5, na.rm = TRUE),
-  colMeans(fdr6, na.rm = TRUE)
-  # colMeans(fdr7, na.rm = TRUE),
-  # colMeans(fdr8, na.rm = TRUE),
-  # colMeans(fdr9, na.rm = TRUE),
+  colMeans(fdr6, na.rm = TRUE),
+  colMeans(fdr7, na.rm = TRUE),
+  colMeans(fdr8, na.rm = TRUE),
+  colMeans(fdr9, na.rm = TRUE)
   # colMeans(fdr10, na.rm = TRUE),
   # colMeans(fdr11, na.rm = TRUE)
 )
 
 
-name_method <- c('GhostKnockoff', 
+name_method <- c('GhostKnockoff dss_for_r', 
                  'AnnoGK',
                  'AnnoGK-dss', 
                  'GhostKnockoff M=5',
                  'AnnoGK M=5', 
-                 'AnnoGK-dss M=5')
+                 'AnnoGK-dss M=5',
+                 'AnnoGK dss for r',
+                 'AnnoGK dss_for_r M = 5',
+                 'GhostKnockoff median_sample_size')
 
 method <- rep(name_method, each = len)
-plot_data <- data.frame(alpha = rep(alphalist, 6),
+plot_data <- data.frame(alpha = rep(alphalist, 9),
                         method = method,
                         power = power,
                         fdr = fdr)
 
 
-methods <- c('GhostKnockoff', 
+methods <- c(#'GhostKnockoff dss_for_r', 
              'AnnoGK',
              'AnnoGK-dss', 
-             'GhostKnockoff M=5',
-             'AnnoGK M=5', 
-             'AnnoGK-dss M=5')
+             #'GhostKnockoff M=5',
+             #'AnnoGK M=5', 
+             #'AnnoGK-dss M=5',
+             'AnnoGK dss for r'
+             #'AnnoGK dss_for_r M = 5',
+             #'GhostKnockoff median_sample_size'
+             )
+
+plot_data <- plot_data[plot_data$method %in% methods,]
 
 
-colors <- c("GhostKnockoff" = "#7570b3",     
+colors <- c("GhostKnockoff dss_for_r" = "#7570b3",     
             "AnnoGK" = "#e7298a",            
             "GhostKnockoff M=5" = "#66a61e", 
             "AnnoGK-dss" = "#1f78b4",        
             "AnnoGK M=5" = "#e6ab02",        
-            "AnnoGK-dss M=5" = "#a6761d")    
+            "AnnoGK-dss M=5" = "#a6761d",
+            'AnnoGK dss for r' = "#abe",        
+            'AnnoGK dss_for_r M = 5' = '#e98',
+            'GhostKnockoff median_sample_size' = '#a78')    
 
-shapes <- c("GhostKnockoff" = 15,    
+shapes <- c("GhostKnockoff dss_for_r" = 15,    
             "AnnoGK" = 3,            
             "GhostKnockoff M=5" = 8, 
             "AnnoGK M=5" = 4,        
             "AnnoGK-dss" = 14,       
-            "AnnoGK-dss M=5" = 18)   
+            "AnnoGK-dss M=5" = 18,
+            'AnnoGK dss for r' = 20,
+            'AnnoGK dss_for_r M = 5' = 19,
+            'GhostKnockoff median_sample_size' = 11)   
 
 p1 <- ggplot(plot_data, aes(x = alpha, y = power, color = method, shape = method)) +
   geom_line() +
