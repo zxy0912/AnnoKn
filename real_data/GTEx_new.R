@@ -9,6 +9,34 @@ source("/home/xz527/Rcode/knockoff_anno/GK_anno/GK_anno.R")
 source("/home/xz527/Rcode/knockoff_anno/GK_anno/GhostKnockoff.R")
 packageVersion("Matrix") 
 
+################################## package for AdaKn ##########################################
+suppressMessages(library("adaptMT"))
+suppressMessages(library("splines"))
+suppressMessages(library("knockoff"))
+suppressMessages(library("SNPknock"))
+suppressMessages(library("dplyr"))
+suppressMessages(library("corpcor"))
+suppressMessages(library("glmnet"))
+suppressMessages(library("MASS"))
+suppressMessages(library("gam"))
+suppressMessages(library("randomForest"))
+suppressMessages(library("tidyverse"))
+suppressMessages(library("mgcv"))
+source_gitfile <- function(filename){
+  source(sprintf("%s.R", filename))
+}
+file_vec <- c("/home/xz527/Rcode/knockoff_side/code//utils/all_other_methods",
+              "/home/xz527/Rcode/knockoff_side/code/utils/adaptive_knockoff",
+              "/home/xz527/Rcode/knockoff_side/code/utils/filter_EM",
+              "/home/xz527/Rcode/knockoff_side/code/utils/filter_gam",
+              "/home/xz527/Rcode/knockoff_side/code/utils/filter_glm",
+              "/home/xz527/Rcode/knockoff_side/code/utils/filter_randomForest", 
+              "/home/xz527/Rcode/knockoff_side/code/utils/All_q_est_functions", 
+              "/home/xz527/Rcode/knockoff_side/code/utils/accumulation_test_functions")
+getfile <- sapply(file_vec,source_gitfile)
+############################################################################
+
+
 library(data.table)
 library(genio)
 library(tidyr)
@@ -30,7 +58,7 @@ bedNA <- function(bed1){
 pc = 5
 # chrid = 1
 lnc = FALSE
-celltype = "Breast_Mammary_Tissue"
+celltype = "Muscle_Skeletal"
 # "Brain_Cortex" "Lung" "Pancreas"
 
 gexp_path = paste0('/gpfs/gibbs/pi/zhao/jz874/jiazhao/Xiangyu/TWAS_fm/GTEx_Gene_expression_adjust_covariates/adjusted_expr_age_sex_',pc,'genopcs_5peers')
@@ -362,7 +390,6 @@ for(gene_i in 1:nrow(risk_gene)){
   # standardize the matrix
   Xk = scale(Xk)
   
-  
   # run original knockoff
   p = ncol(X_repre)
   mdl = cv.glmnet(cbind(X_repre, Xk), y_repre, alpha=1)
@@ -397,6 +424,15 @@ for(gene_i in 1:nrow(risk_gene)){
     col[is.na(col)] <- mean(col, na.rm = TRUE)
     col
   })
+  
+  
+  ############################### AdaKn ################################################
+  alphalist <- c(0.05, 0.1, 0.2, 0.3)
+  res_result = filter_randomForest(W1,R,alpha =alphalist,offset=1)
+  rej3 = res_result$rejs[[2]]
+  rej3
+  
+  ######################################################################################
   
   # var_para <- apply(R, 2, var)
   # if(length(var_para!=0) == 0){
@@ -437,12 +473,14 @@ for(gene_i in 1:nrow(risk_gene)){
   
   final_result = list(ghostknockoff = W1,
                       knockoff_anno = result_raw,
+                      adakn = res_result,
                       snp_name = snp_name,
                       annot = annot0,
                       R = R,
                       gene_info = gene_info)
   
-  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GTEx/result_new_500k_enhancer/chr_", chrid,"_gene_", gene_i, "_ct_", celltype, ".RData")
+  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GTEx/result_new_500k_enhancer/adakn_chr_", chrid,"_gene_", gene_i, "_ct_", celltype, ".RData")
+  # path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GTEx/result_new_500k_enhancer/chr_", chrid,"_gene_", gene_i, "_ct_", celltype, ".RData")
   save(final_result, file = path)
   
   # path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GTEx/result/chr_", chrid,"_gene_", gene_i, ".RData")
