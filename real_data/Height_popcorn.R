@@ -31,7 +31,7 @@ for(ancestry in ancestry_all){
 
 
 ########### make the manhatten plot
-ancestry = 'AFR'
+ancestry = 'EUR'
 if(ancestry == 'AFR'){
   ancestry0 = 'AA'
 }else{
@@ -40,6 +40,8 @@ if(ancestry == 'AFR'){
 path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GK_anno/Height/GIANT_HEIGHT_YENGO_2022_GWAS_SUMMARY_STATS_", ancestry0) 
 sum_s <- read.table(path, header = TRUE, sep = '\t')
 
+sum_s <- sum_s[sum_s$P < 0.1, ]
+sum_s <- sum_s[!is.na(sum_s$CHR),]
 # t2d_ss_2024 <- t2d_ss_2024_all[t2d_ss_2024_all$Pval<0.0001,]
 
 # path = paste("/gpfs/gibbs/pi/zhao/xz527/TWAS_fm/real_data/ancestry/",ancestry,"/T2D2024/t2d_ss_2024_sub", sep="")

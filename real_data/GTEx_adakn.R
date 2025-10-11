@@ -195,7 +195,13 @@ M = 250000
 
 gene_i = 1
 
+
+path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GTEx/result_new_500k_enhancer/adakn_chr_", chrid, "_ct_", celltype, ".RData")
+all_result <- list()
+save(all_result, file = path)
+
 for(gene_i in 1:nrow(risk_gene)){
+  print(paste(gene_i, "out of", nrow(risk_gene)))
   
   set.seed(1000)
   
@@ -425,12 +431,26 @@ for(gene_i in 1:nrow(risk_gene)){
     col
   })
   
+  var_para <- apply(R, 2, var)
+  
+  if(all(is.na(R)) | sum(var_para!=0) == 0){
+    print("no informative annotations")
+    res_result = "no_information"
+  }else{
+    alphalist <- c(0.3, 0.2, 0.1, 0.05)
+    # res_result = filter_randomForest(W1,R,alpha =alphalist,offset=1)
+    res_result <- tryCatch({
+      withTimeout({
+        filter_randomForest(W1, R, alpha = alphalist, offset = 1)
+      }, timeout = 120, onTimeout = "error")
+    }, error = function(e) "over 2 min")
+    rej3 = res_result$rejs[[3]]
+    print(rej3)
+  }
+    
   
   ############################### AdaKn ################################################
-  # alphalist <- c(0.05, 0.1, 0.2, 0.3)
-  # res_result = filter_randomForest(W1,R,alpha =alphalist,offset=1)
-  # rej3 = res_result$rejs[[2]]
-  # rej3
+  
   
   ######################################################################################
   
@@ -445,47 +465,58 @@ for(gene_i in 1:nrow(risk_gene)){
   # R = scale(R)
   
   
-  result_raw <- knockoff_anno_improved(X = X_repre, Xk = Xk, y = y_repre, attempts = c(0), R = R)
-  
-  beta = result_raw$beta
-  T = abs(beta[1:p])
-  T_tilde = abs(beta[(p+1):(2*p)])
-  T_max = pmax(T,T_tilde)
-  W = T - T_tilde
-  
-  hist(W, breaks = 50)
-  
-  
-  tau = knockoff.threshold(W,fdr = alpha,offset = 1)
-  rej2 = as.numeric(which(W >= tau))
-  
-  result_raw$lambda_s
+  # result_raw <- knockoff_anno_improved(X = X_repre, Xk = Xk, y = y_repre, attempts = c(0), R = R)
+  # 
+  # beta = result_raw$beta
+  # T = abs(beta[1:p])
+  # T_tilde = abs(beta[(p+1):(2*p)])
+  # T_max = pmax(T,T_tilde)
+  # W = T - T_tilde
+  # 
+  # hist(W, breaks = 50)
+  # 
+  # 
+  # tau = knockoff.threshold(W,fdr = alpha,offset = 1)
+  # rej2 = as.numeric(which(W >= tau))
+  # 
+  # result_raw$lambda_s
   
   # hist(W[W!=0],  breaks = 20)
   # hist(W1[W1!=0],  breaks = 20)
   # hist(result_raw$Prior_final, xlab = 'weight', main = 'Histogram of weights')
   
   
-  print(result_raw$lambda_s)
-  print(rej1)
-  print(rej2)
+  # print(result_raw$lambda_s)
+  # print(rej1)
+  # print(rej2)
   
   
-  final_result = list(ghostknockoff = W1,
-                      knockoff_anno = result_raw,
-                      # adakn = res_result,
+  final_result = list(chr = chrid,
+                      gene_i = gene_i,
+                      ghostknockoff = W1,
+                      # knockoff_anno = result_raw,
+                      adakn = res_result,
                       snp_name = snp_name,
                       annot = annot0,
                       R = R,
                       gene_info = gene_info)
   
-  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GTEx/result_new_500k_enhancer/chr_", chrid,"_gene_", gene_i, "_ct_", celltype, ".RData")
+  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GTEx/result_new_500k_enhancer/adakn_chr_", chrid, "_ct_", celltype, ".RData")
+  
+  load(path)
+  
+  all_result <- append(all_result, list(final_result))
+  
   # path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GTEx/result_new_500k_enhancer/chr_", chrid,"_gene_", gene_i, "_ct_", celltype, ".RData")
-  save(final_result, file = path)
+  save(all_result, file = path)
   
   # path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GTEx/result/chr_", chrid,"_gene_", gene_i, ".RData")
   # cats = c("SNP", "Promoter_UCSC", "Enhancer_Hoffman", "Coding_UCSC", "TFBS_ENCODE")
   # M = 500000
   # clusters <- cutree(hc, h = 0.5) 
 }
+
+
+
+
 

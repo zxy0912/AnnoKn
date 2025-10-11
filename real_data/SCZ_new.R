@@ -30,7 +30,7 @@ bedNA <- function(bed1){
 
 ################ load the summary statistics
 ancestry0 = 'EAS'
-ancestry1 = c('EUR')
+ancestry1 = c('EUR',"AFR","LAT")
 
 
 ancestry = ancestry0
@@ -40,7 +40,7 @@ sum_s <- read.table(path, sep="\t", header=TRUE, stringsAsFactors = FALSE)
 colnames(sum_s) <- c("Chromsome","SNPID", "Position", "EffectAllele", "NonEffectAllele", "NonEffectAF_case", 
                      "NonEffectAF_control", "INFO", "Beta", "SE","Pval","N_case","N_control","Neff")
 sum_s[[ancestry]] <- sum_s$Pval
-print(length(unique(sum_s$SNP)) == nrow(sum_s))
+print(length(unique(sum_s$SNPID)) == nrow(sum_s))
 
 # ,'HIS','SAS','EAS','AFA'
 for(ancestry in ancestry1){
@@ -49,7 +49,7 @@ for(ancestry in ancestry1){
   colnames(temp) <- c("Chromsome","SNPID", "Position", "EffectAllele", "NonEffectAllele", "NonEffectAF_case", 
                        "NonEffectAF_control", "INFO", "Beta", "SE","Pval","N_case","N_control","Neff")
   
-  message(ancestry, ": unique SNP? ", length(unique(temp$SNP)) == nrow(temp))
+  message(ancestry, ": unique SNP? ", length(unique(temp$SNPID)) == nrow(temp))
   index <- match(sum_s$SNP, temp$SNP)
   print(table(is.na(index)))
   print(table(temp$SNP[index] == sum_s$SNP))
@@ -66,9 +66,10 @@ for(ancestry in ancestry1){
 M = 1
 seed = 12345
 
+# 100, 1000, 123, 1234, 12345
 
-for(M in c(1,3,5)){
-  for(seed in c(12345,123,1234)){
+for(M in c(1,3)){
+  for(seed in c(1,12,10,10000,10000, 100, 1000, 123, 1234, 12345)){
     sums_chr = sum_s[sum_s$Chromsome == chrid,]
     sums_chr <- sums_chr[order(sums_chr$Position),]
     
@@ -143,6 +144,7 @@ for(M in c(1,3,5)){
     i = 1
     
     for(i in 1:nrow(risk_region)){
+      print(paste("region:", i))
       
       set.seed(seed)
       
@@ -221,10 +223,12 @@ for(M in c(1,3,5)){
       
       #### use hierarchical clustering to cluster SNPs
       
-      d <- as.dist(1 - R)  # higher distance = lower correlation
+      # d <- as.dist(1 - R)  # higher distance = lower correlation
+      R2 <- R^2
+      d <- as.dist(1 - R2) # cluster SNPs with r² > 0.5
       hc <- hclust(d, method = "average")
       hc <- as.dendrogram(hc)
-      clusters <- cutree(hc, h = 0.5)  # e.g., cluster SNPs with r² > 0.6
+      clusters <- cutree(hc, h = 0.75)  # e.g., cluster SNPs with r² > 0.5
       length(table(clusters))
       mean(table(clusters)) # average size for each cluster
       
@@ -328,7 +332,7 @@ for(M in c(1,3,5)){
                    lambda_s = lambda_s)
     
     other = paste(ancestry1, collapse = "_")
-    path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/SCZ/annot_pvalus/result/", ancestry0, "_result_final_10_median_", other, "_chr_",chrid, "_M_", M, "_", seed, ".RData")
+    path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/SCZ/annot_pvalus/result/", ancestry0, "_result_final_10_median_r2_", other, "_chr_",chrid, "_M_", M, "_", seed, ".RData")
     save(result, file = path)
     
     

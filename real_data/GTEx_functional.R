@@ -9,32 +9,32 @@ source("/home/xz527/Rcode/knockoff_anno/GK_anno/GK_anno.R")
 source("/home/xz527/Rcode/knockoff_anno/GK_anno/GhostKnockoff.R")
 packageVersion("Matrix") 
 
-################################## package for AdaKn ##########################################
-suppressMessages(library("adaptMT"))
-suppressMessages(library("splines"))
-suppressMessages(library("knockoff"))
-suppressMessages(library("SNPknock"))
-suppressMessages(library("dplyr"))
-suppressMessages(library("corpcor"))
-suppressMessages(library("glmnet"))
-suppressMessages(library("MASS"))
-suppressMessages(library("gam"))
-suppressMessages(library("randomForest"))
-suppressMessages(library("tidyverse"))
-suppressMessages(library("mgcv"))
-source_gitfile <- function(filename){
-  source(sprintf("%s.R", filename))
-}
-file_vec <- c("/home/xz527/Rcode/knockoff_side/code//utils/all_other_methods",
-              "/home/xz527/Rcode/knockoff_side/code/utils/adaptive_knockoff",
-              "/home/xz527/Rcode/knockoff_side/code/utils/filter_EM",
-              "/home/xz527/Rcode/knockoff_side/code/utils/filter_gam",
-              "/home/xz527/Rcode/knockoff_side/code/utils/filter_glm",
-              "/home/xz527/Rcode/knockoff_side/code/utils/filter_randomForest", 
-              "/home/xz527/Rcode/knockoff_side/code/utils/All_q_est_functions", 
-              "/home/xz527/Rcode/knockoff_side/code/utils/accumulation_test_functions")
-getfile <- sapply(file_vec,source_gitfile)
-############################################################################
+# ################################## package for AdaKn ##########################################
+# suppressMessages(library("adaptMT"))
+# suppressMessages(library("splines"))
+# suppressMessages(library("knockoff"))
+# suppressMessages(library("SNPknock"))
+# suppressMessages(library("dplyr"))
+# suppressMessages(library("corpcor"))
+# suppressMessages(library("glmnet"))
+# suppressMessages(library("MASS"))
+# suppressMessages(library("gam"))
+# suppressMessages(library("randomForest"))
+# suppressMessages(library("tidyverse"))
+# suppressMessages(library("mgcv"))
+# source_gitfile <- function(filename){
+#   source(sprintf("%s.R", filename))
+# }
+# file_vec <- c("/home/xz527/Rcode/knockoff_side/code//utils/all_other_methods",
+#               "/home/xz527/Rcode/knockoff_side/code/utils/adaptive_knockoff",
+#               "/home/xz527/Rcode/knockoff_side/code/utils/filter_EM",
+#               "/home/xz527/Rcode/knockoff_side/code/utils/filter_gam",
+#               "/home/xz527/Rcode/knockoff_side/code/utils/filter_glm",
+#               "/home/xz527/Rcode/knockoff_side/code/utils/filter_randomForest", 
+#               "/home/xz527/Rcode/knockoff_side/code/utils/All_q_est_functions", 
+#               "/home/xz527/Rcode/knockoff_side/code/utils/accumulation_test_functions")
+# getfile <- sapply(file_vec,source_gitfile)
+# ############################################################################
 
 
 library(data.table)
@@ -55,11 +55,13 @@ bedNA <- function(bed1){
 }
 
 
+type = 1
 pc = 5
 # chrid = 1
 lnc = FALSE
-celltype = "Muscle_Skeletal"
+celltype = "Breast_Mammary_Tissue"
 # "Brain_Cortex" "Lung" "Pancreas"
+print(celltype)
 
 gexp_path = paste0('/gpfs/gibbs/pi/zhao/jz874/jiazhao/Xiangyu/TWAS_fm/GTEx_Gene_expression_adjust_covariates/adjusted_expr_age_sex_',pc,'genopcs_5peers')
 
@@ -157,7 +159,9 @@ snp_mart <- useEnsembl(
 
 
 cats = c("SNP", "Promoter_UCSC", "Enhancer_Hoffman", "Coding_UCSC", "TFBS_ENCODE")
-cats = c("SNP", "Promoter_UCSC", "Enhancer_Hoffman", "TFBS_ENCODE")
+if(type == 1){
+  cats = c("SNP", "Promoter_UCSC", "Enhancer_Hoffman", "TFBS_ENCODE")
+}
 # cats = c("SNP","Coding_UCSC", "TSS_Hoffman", "Enhancer_Hoffman", 
 #          "Promoter_UCSC", "H3K27ac_Hnisz", "H3K4me1_peaks_Trynka")
 # annot = fread(paste0("/gpfs/gibbs/pi/zhao/cl2384/MESC_Genes/baselineLD_2.1/baselineLD.", chrid, ".annot.gz"))
@@ -195,8 +199,15 @@ M = 250000
 
 gene_i = 1
 
+
+
+path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GTEx/result_new_500k_enhancer/chr_", chrid, "_ct_", celltype, "_type_", type, ".RData")
+all_result <- list()
+save(all_result, file = path)
+
 for(gene_i in 1:nrow(risk_gene)){
   
+  print(paste(gene_i, "out of", nrow(risk_gene)))
   set.seed(1000)
   
   gene_info <- risk_gene[gene_i,]
@@ -236,7 +247,8 @@ for(gene_i in 1:nrow(risk_gene)){
     cat("variance of gene expression is 0:",
         "  chrid:", chrid, 
         "  gene:", gene_i, "\n", 
-        file = "/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GTEx/result_new_500k_enhancer/log_", celltype, ".txt", append = TRUE)
+        file = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GTEx/result_new_500k_enhancer/log_", celltype, ".txt"), 
+        append = TRUE)
     next
   }
   
@@ -269,10 +281,22 @@ for(gene_i in 1:nrow(risk_gene)){
   
   
   R = cor(X_region)
-  d <- as.dist(1 - R)  # higher distance = lower correlation
+  R2 <- R^2
+  d <- as.dist(1 - R2)
+  # d <- as.dist(1 - R)  # higher distance = lower correlation
   hc <- hclust(d, method = "average")
   plot(hc, labels = FALSE, main = "SNP clustering by LD")
-  clusters <- cutree(hc, h = 0.5)  # e.g., cluster SNPs with r² > 0.5
+  clusters <- tryCatch(
+    cutree(hc, h = 0.75),
+    error = function(e) {
+      message("average linkage failed, switching to single linkage...")
+      hc <<- hclust(d, method = "single") 
+      plot(hc, labels = FALSE, main = "SNP clustering by LD (single linkage)")
+      cutree(hc, h = 0.75)
+    }
+  )
+  # clusters <- cutree(hc, h = 0.75)  # e.g., cluster SNPs with r² > 0.5
+  
   length(table(clusters))
   mean(table(clusters)) # average size for each cluster
   
@@ -280,7 +304,8 @@ for(gene_i in 1:nrow(risk_gene)){
     cat("number of SNP groups <= 10:",
         "  chrid:", chrid, 
         "  gene:", gene_i, "\n", 
-        file = "/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GTEx/result_new_500k_enhancer/log_", celltype, ".txt", append = TRUE)
+        file = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GTEx/result_new_500k_enhancer/log_", celltype, ".txt"), 
+        append = TRUE)
     next
   }
   
@@ -323,36 +348,6 @@ for(gene_i in 1:nrow(risk_gene)){
   # position <- paste(df_split$chr, df_split$pos, df_split$pos, sep = ":")
   
   
-  # while (TRUE) {
-  #   snp_info <- try({
-  #     getBM(
-  #       attributes = c('refsnp_id', 'chr_name', 'chrom_start', 'chrom_end', 'allele'),
-  #       filters = 'chromosomal_region',
-  #       values = position,
-  #       mart = snp_mart
-  #     )
-  #   })
-  #   if (!isa(snp_info, "try-error"))
-  #     break
-  #   else{
-  #     break
-  #     Sys.sleep(3)
-  #     # print(z)
-  #     print("try again!")
-  #   }
-  # }
-  # 
-  # if (!isa(snp_info, "try-error")){
-  #   print("try error")
-  #   next
-  # }
-  
-  # index <- match(df_split$pos, snp_info$chrom_start)
-  # snp_name <- snp_info$refsnp_id[index]
-  # colnames(X_repre) <- snp_name
-  
-  
-  
   length(intersect(df_split$pos, ref_hg38$end))
   index <- match(df_split$pos, ref_hg38$end)
   snp_name <- ref_hg38$snp[index]
@@ -376,10 +371,6 @@ for(gene_i in 1:nrow(risk_gene)){
   # is snp not exists in ref_hg38, which is very unlikely, name this SNP the position on this chromosome
   snp_name[is.na(snp_name)] <- df_split$pos[is.na(snp_name)]
   colnames(X_repre) <- snp_name
-  
-  
-  
-  
   
   
   ############## knockoff
@@ -434,16 +425,6 @@ for(gene_i in 1:nrow(risk_gene)){
   
   ######################################################################################
   
-  # var_para <- apply(R, 2, var)
-  # if(length(var_para!=0) == 0){
-  #   print("no useful annotations")
-  #   R = matrix(1, nrow = nrow(R), ncol = 1)
-  # }else{
-  #   R <- R[, var_para!=0]
-  # }
-  # 
-  # R = scale(R)
-  
   
   result_raw <- knockoff_anno_improved(X = X_repre, Xk = Xk, y = y_repre, attempts = c(0), R = R)
   
@@ -471,21 +452,28 @@ for(gene_i in 1:nrow(risk_gene)){
   print(rej2)
   
   
-  final_result = list(ghostknockoff = W1,
+  final_result = list(chr = chrid,
+                      gene_i = gene_i,
+                      ghostknockoff = W1,
                       knockoff_anno = result_raw,
-                      # adakn = res_result,
                       snp_name = snp_name,
                       annot = annot0,
                       R = R,
                       gene_info = gene_info)
   
-  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GTEx/result_new_500k_enhancer/chr_", chrid,"_gene_", gene_i, "_ct_", celltype, ".RData")
-  # path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GTEx/result_new_500k_enhancer/chr_", chrid,"_gene_", gene_i, "_ct_", celltype, ".RData")
-  save(final_result, file = path)
+  # final_result = list(
+  #                     ghostknockoff = W1,
+  #                     # knockoff_anno = result_raw,
+  #                     adakn = res_result,
+  #                     snp_name = snp_name,
+  #                     annot = annot0,
+  #                     R = R,
+  #                     gene_info = gene_info)
   
-  # path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GTEx/result/chr_", chrid,"_gene_", gene_i, ".RData")
-  # cats = c("SNP", "Promoter_UCSC", "Enhancer_Hoffman", "Coding_UCSC", "TFBS_ENCODE")
-  # M = 500000
-  # clusters <- cutree(hc, h = 0.5) 
+  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GTEx/result_new_500k_enhancer/chr_", chrid, "_ct_", celltype, "_type_", type, ".RData")
+  
+  load(path)
+  all_result <- append(all_result, list(final_result))
+  save(all_result, file = path)
 }
 

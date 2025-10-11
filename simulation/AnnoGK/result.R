@@ -42,9 +42,9 @@ removelist = c()
 
 binary = ''
 dimen = 'double'
-heri = 0.05
+heri = 0.1
 N.effect = 5000 #
-p = 1000
+p = 300
 
 for (i in 1:iteration) {
   path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/ghostknockoff/simulation/AnnoGK_simu/result/heri_final_10_",heri,"_n_",N.effect,"_p_",p, "_", i,".RData")
@@ -145,12 +145,12 @@ name_method <- c('Knockoff',
                  'AnnoGK-dss M=5')
 
 method <- rep(name_method, each = len)
-plot_data <- data.frame(alpha = rep(alphalist, 11),
+plot_data_all <- data.frame(alpha = rep(alphalist, 11),
                         method = method,
                         power = power,
                         fdr = fdr)
 
-plot_data <- plot_data[plot_data$method %in% c('Knockoff', 'AnnoKn', 'GhostKnockoff','AnnoGK','GhostKnockoff M=5','AnnoGK M=5'),]
+plot_data <- plot_data_all[plot_data_all$method %in% c('Knockoff', 'AnnoKn', 'GhostKnockoff','AnnoGK'),]
 
 methods <- c("Knockoff", "AnnoKn", "GhostKnockoff",
              "AnnoGK", "GhostKnockoff M=5", "AnnoGK M=5")
@@ -189,3 +189,165 @@ p2 <- ggplot(plot_data, aes(x = alpha, y = fdr, color = method, shape = method))
 library(gridExtra)
 grid.arrange(p1, p2, ncol = 2)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+p = 1000
+
+
+library(ggplot2)
+library(dplyr)
+
+iteration = 100
+alphalist <- seq(0.4, 0.1, by = -0.05)
+len = length(alphalist)
+heri_list <- c(0.05, 0.1)
+
+
+all_plot_data <- data.frame()
+
+for (h in heri_list) {
+  
+  power_list <- lapply(1:11, function(x) matrix(0, nrow = iteration, ncol = len))
+  fdr_list   <- lapply(1:11, function(x) matrix(0, nrow = iteration, ncol = len))
+  
+  removelist <- c()
+  
+  for (i in 1:iteration) {
+    path <- paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/ghostknockoff/simulation/AnnoGK_simu/result/heri_final_10_",
+                   h, "_n_", 5000, "_p_", p, "_", i, ".RData")
+    if (!file.exists(path)) {
+      removelist <- c(removelist, i)
+      next
+    }
+    load(path)
+    
+    for (j in 1:11) {
+      power_list[[j]][i, ] <- result[[paste0("power", j)]]
+      fdr_list[[j]][i, ]   <- result[[paste0("fdr", j)]]
+    }
+  }
+  
+  power_means <- unlist(lapply(power_list, function(x) colMeans(x, na.rm = TRUE)))
+  fdr_means   <- unlist(lapply(fdr_list, function(x) colMeans(x, na.rm = TRUE)))
+  
+  name_method <- c('Knockoff', 
+                   'AnnoKn-simple', 
+                   'AnnoKn', 
+                   'GhostKnockoff', 
+                   'AnnoGK-simple',
+                   'AnnoGK',
+                   'AnnoGK-dss', 
+                   'GhostKnockoff M=5', 
+                   'AnnoGK-simple M=5',
+                   'AnnoGK M=5', 
+                   'AnnoGK-dss M=5')
+  
+  methods <- c("Knockoff", "AnnoKn", "GhostKnockoff",
+               "AnnoGK")
+  
+  method <- rep(name_method, each = len)
+  tmp_df <- data.frame(
+    alpha = rep(alphalist, 11),
+    method = method,
+    power = power_means,
+    fdr = fdr_means,
+    heritability = paste0("h\u00B2 = ", h)   # facet label
+  )
+ 
+  tmp_df <- tmp_df[tmp_df$method %in% methods, ]
+  
+  tmp_df_long <- bind_rows(
+    tmp_df %>% transmute(alpha, value = power, method, heritability, measure = "Power"),
+    tmp_df %>% transmute(alpha, value = fdr,   method, heritability, measure = "FDR")
+  )
+  
+  all_plot_data <- rbind(all_plot_data, tmp_df_long)
+}
+
+all_plot_data$measure <- factor(all_plot_data$measure, levels = c("Power", "FDR"))
+
+colors <- c("Knockoff" = "#E69F00",
+            "AnnoKn" = "#FF0000",
+            "GhostKnockoff" = "#7570b3",
+            "AnnoGK" = "#e7298a",
+            "AnnoKn-simple" = "#66a61e",
+            "AnnoGK-simple" = "#e6ab02")
+
+shapes <- c("Knockoff" = 16,
+            "AnnoKn" = 8,
+            "GhostKnockoff" = 15,
+            "AnnoGK" = 3,
+            "AnnoKn-simple" = 5,
+            "AnnoGK-simple" = 4)
+
+plot_data_with_limits <- all_plot_data %>%
+  mutate(ymax = ifelse(measure == "FDR", 0.4, 1))
+
+g <- ggplot(all_plot_data, aes(x = alpha, y = value, color = method, shape = method)) +
+  geom_line(linewidth = 0.5) +
+  geom_point(size = 1) +
+  scale_color_manual(values = colors) +
+  scale_shape_manual(values = shapes) +
+  facet_grid(measure ~ heritability, switch = "y", scales = "free_y") +  # 允许不同行不同y轴
+  theme_minimal() +
+  labs(x = "Target FDR", y = NULL) +
+  theme(
+    text = element_text(family = "Arial"),
+    strip.background = element_rect(fill = "grey90", color = NA),
+    strip.text = element_text(size = 10),
+    axis.text = element_text(size = 9),
+    legend.text = element_text(size = 9),
+    legend.title = element_text(size = 10),
+    panel.grid.major = element_line(color = "grey80", linewidth = 0.5),
+    panel.grid.minor = element_line(color = "grey90", linewidth = 0.25)
+  )
+
+fdr_data <- subset(all_plot_data, measure == "FDR")
+g <- g + geom_line(
+  data = fdr_data,
+  aes(x = alpha, y = alpha),
+  inherit.aes = FALSE,
+  linetype = "dashed",
+  color = "black",
+  linewidth = 0.3
+)
+
+g <- g + geom_blank(
+  data = plot_data_with_limits,
+  aes(y = ymax)
+)
+
+print(g)
+
+ggsave("/gpfs/gibbs/pi/zhao/xz527/annoKn_plots/AnnoGK_simu_strong_p1000.pdf", 
+       g, 
+       width = 7, height = 5, units = "in", 
+       bg = "white", device = cairo_pdf)
+
+
+
+
+
+
+
+plot(beta,
+     type = "h",                    
+     lwd = 2,                      
+     col = ifelse(beta != 0, "red", "grey"),
+     xlab = "Index",
+     ylab = "True coefficient")
+
+box(bty = "n")

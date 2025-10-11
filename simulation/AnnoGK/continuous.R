@@ -67,7 +67,7 @@ for (heri in c(0.05, 0.1, 0.2)){
     
     sigprob = rep(0,p)
     sigprob[1:60] = 1/(1:60)^2/(sum(1/(1:60)^2))
-    #sigprob[1:60] = 1/(1:60)/(sum(1/(1:60)))
+    sigprob[1:60] = 1/(1:60)/(sum(1/(1:60)))
     rand = sample(1:p,n0,prob = sigprob)
     #rand = sample(1:p,n0) 
     rand_sign = sample(c(-1,1), size=p, replace=TRUE)
@@ -454,6 +454,7 @@ for (heri in c(0.05, 0.1, 0.2)){
     
     # path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/ghostknockoff/simulation/AnnoGK_simu/result/heri_",heri,"_n_",N.effect,"_p_",p, "_", i,".RData")
     path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/ghostknockoff/simulation/AnnoGK_simu/result/heri_final_10_",heri,"_n_",N.effect,"_p_",p, "_", i,".RData")
+    path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/ghostknockoff/simulation/AnnoGK_simu/result/heri_final_10_weak_",heri,"_n_",N.effect,"_p_",p, "_", i,".RData")
     
     dir <- dirname(path)
     if (!dir.exists(dir)) {

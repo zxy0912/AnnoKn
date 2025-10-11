@@ -128,26 +128,21 @@ write.table(sum_s, file = path, sep = "\t", row.names = FALSE, col.names = TRUE,
 
 
 ########### make the manhatten plot
-ancestry = 'EUR'
-if(ancestry == 'AFR'){
-  ancestry0 = 'afram'
-}else{
-  ancestry0 = 'european'
-}
-path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GK_anno/SCZ/PGC3_SCZ_wave3.", ancestry0, ".autosome.public.v3.vcf.tsv") 
-sum_s <- read.table(path,
-                    sep="\t", header=TRUE, comment.char="#", stringsAsFactors=FALSE)
+ancestry = 'LAT'
 
-sum_s <- sum_s[sum_s$PVAL<0.1,]
+path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GK_anno/SCZ/", ancestry, "_summ.tsv") 
+sum_s <- read.table(path, sep="\t", header=TRUE, stringsAsFactors = FALSE)
+
+sum_s <- sum_s[sum_s$PVAL<0.001,]
 
 # path = paste("/gpfs/gibbs/pi/zhao/xz527/TWAS_fm/real_data/ancestry/",ancestry,"/T2D2024/t2d_ss_2024_sub", sep="")
 # write.table(t2d_ss_2024, path, row.names = F, col.names = T, quote = F)
 
 library("qqman")
 
-p <- manhattan(sum_s, chr = "CHROM", bp = "POS", p = "PVAL", snp = "ID", main=paste("Manhattan plot for",ancestry,"ancestry"), 
+p <- manhattan(sum_s, chr = "CHROM", bp = "POS", p = "PVAL", snp = "ID", main=paste("Manhattan plot for", ancestry, "ancestry"), 
                col = c("red4","red","orange","gold","darkgreen","forestgreen","yellowgreen","darkcyan","darkblue","royalblue1", "blue","dodgerblue","deepskyblue","skyblue1","purple4","darkmagenta","violetred","hotpink","palevioletred","lightpink","chocolate4","lightgray","gray28"), 
-               ylim=c(0,30),chrlabs = NULL,suggestiveline = -log10(5e-06), genomewideline = -log10(5e-08),highlight = NULL, 
+               ylim=c(0,42),chrlabs = NULL,suggestiveline = -log10(5e-06), genomewideline = -log10(5e-08),highlight = NULL, 
                logp = TRUE, annotatePval = NULL, annotateTop = TRUE)
 
 p

@@ -4,7 +4,7 @@
 pc = 5
 # chrid = 1
 lnc = FALSE
-celltype = "Whole_Blood"
+celltype = "Brain_Cortex"
 number_gene <- numeric()
 
 for(chrid in as.character(1:22)){
@@ -132,96 +132,121 @@ knockoff.threshold <- function (W, fdr = 0.1, offset = 1){
 }
 
 
-gene_number <- c()
-sum1_all = c()
-sum2_all = c()
+all_tissue <- c("Whole_Blood", "Muscle_Skeletal", "Adipose_Subcutaneous", "Artery_Tibial",
+                "Adipose_Visceral_Omentum", "Brain_Cortex", "Bladder", 
+                "Liver", "Skin_Sun_Exposed_Lower_leg")
 
-find1 <- c()
-find2 <- c()
+gene_all_tissue <- numeric()
+knockoff_all_tissue <- numeric()
+annoKn_all_tissue <- numeric()
 
-chrid = '1'
-gene_i = '12'
-
-for(chrid in as.character(1:22)){
-  
-  alpha = 0.2
-  
-  sum1 = c()
-  sum2 = c()
+for(celltype in all_tissue){
   
   
-  for(gene_i in 1:2000){
-    print(gene_i)
-    path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GTEx/result_new_500k_enhancer/chr_", chrid,"_gene_", gene_i, "_ct_", celltype, ".RData")
+  gene_number <- c()
+  
+  sum1_all = c()
+  sum2_all = c()
+  
+  
+  find1 <- c()
+  find2 <- c()
+  lambdas <- c()
+  
+  
+  chrid = '1'
+  gene_i = '12'
+  
+  for(chrid in as.character(1:22)){
     
-    if (!file.exists(path)) {
-      message("not exist: ", path)
-      break
+    alpha = 0.2
+    
+    sum1 = c()
+    sum2 = c()
+    
+    for(gene_i in 1:2000){
+      print(gene_i)
+      # path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GTEx/result_new_500k_enhancer/chr_", chrid,"_gene_", gene_i, "_ct_", celltype, ".RData")
+      path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GTEx/result_new_500k_enhancer/chr_", chrid,"_gene_", gene_i, "_ct_", celltype, ".RData")
+      
+      if (!file.exists(path)) {
+        message("not exist: ", path)
+        gene_number <- append(gene_number, gene_i - 1)
+        break
+      }
+      
+      load(path)
+      
+      W1 = final_result$ghostknockoff
+      tau = knockoff.threshold(W1,fdr = alpha,offset = 1)
+      rej1 = as.numeric(which(W1>=tau))
+      # print(rej1)
+      
+      
+      result_raw <- final_result$knockoff_anno
+      
+      beta = result_raw$beta
+      p = length(beta)/2
+      T = abs(beta[1:p])
+      T_tilde = abs(beta[(p+1):(2*p)])
+      T_max = pmax(T,T_tilde)
+      W = T - T_tilde
+      
+      # hist(W, breaks = 50)
+      tau = knockoff.threshold(W,fdr = alpha,offset = 1)
+      rej2 = as.numeric(which(W >= tau))
+      
+      result_raw$lambda_s
+      print("rej1:")
+      print(rej1)
+      if(length(rej1 > 0)){
+        sum1 = append(sum1, gene_i)
+        find1 <- append(find1, paste(chrid, gene_i))
+      }
+      print("rej2:")
+      print(rej2)
+      if(length(rej2 > 0)){
+        sum2 = append(sum2, gene_i)
+        find2 <- append(find2, paste(chrid, gene_i))
+        lambdas <- rbind(lambdas, final_result$knockoff_anno$lambda_s[[1]])
+      }
+      
     }
-    gene_number <- append(gene_number, gene_i - 1)
+    sum1_all <- append(sum1_all, length(sum1))
+    sum2_all <- append(sum2_all, length(sum2))
     
-    load(path)
-    
-    W1 = final_result$ghostknockoff
-    tau = knockoff.threshold(W1,fdr = alpha,offset = 1)
-    rej1 = as.numeric(which(W1>=tau))
-    # print(rej1)
-    
-    
-    result_raw <- final_result$knockoff_anno
-    
-    beta = result_raw$beta
-    p = length(beta)/2
-    T = abs(beta[1:p])
-    T_tilde = abs(beta[(p+1):(2*p)])
-    T_max = pmax(T,T_tilde)
-    W = T - T_tilde
-    
-    # hist(W, breaks = 50)
-    tau = knockoff.threshold(W,fdr = alpha,offset = 1)
-    rej2 = as.numeric(which(W >= tau))
-    
-    result_raw$lambda_s
-    print("rej1:")
-    print(rej1)
-    if(length(rej1 > 0)){
-      sum1 = append(sum1, gene_i)
-      find1 <- append(find1, paste(chrid, gene_i))
-    }
-    print("rej2:")
-    print(rej2)
-    if(length(rej2 > 0)){
-      sum2 = append(sum2, gene_i)
-      find2 <- append(find2, paste(chrid, gene_i))
-    }
   }
-  sum1_all <- append(sum1_all, length(sum1))
-  sum2_all <- append(sum2_all, length(sum2))
+  
+  gene_all_tissue <- append(gene_all_tissue, sum(gene_number))
+  
+  knockoff_all_tissue <- append(knockoff_all_tissue, length(find1))
+  annoKn_all_tissue <- append(annoKn_all_tissue, length(find2))
+  
+  
+  library(grid)
+  grid.newpage()
+  library(VennDiagram)
+  
+  venn.plot <- draw.pairwise.venn(
+    area1 = length(find1),                 
+    area2 = length(find2),                 
+    cross.area = length(intersect(find1, find2)),  
+    category = c("Knockoff", "AnnoKn"),
+    fill = c("skyblue", "orange"),
+    lty = "blank",
+    cex = 1.5,
+    cat.cex = 1.5
+  )
+  
+  grid.draw(venn.plot)
+  
 }
 
 
-library(grid)
-grid.newpage()
-library(VennDiagram)
-
-venn.plot <- draw.pairwise.venn(
-  area1 = length(find1),                 
-  area2 = length(find2),                 
-  cross.area = length(intersect(find1, find2)),  
-  category = c("Knockoff", "Knockoff-anno"),
-  fill = c("skyblue", "orange"),
-  lty = "blank",
-  cex = 1.5,
-  cat.cex = 1.5
-)
-
-grid.draw(venn.plot)
-
-
-
-
-
-
+data.frame(tissue = all_tissue, 
+           knockoff = knockoff_all_tissue, 
+           annoKn = annoKn_all_tissue,
+           improve = (annoKn_all_tissue - knockoff_all_tissue)/knockoff_all_tissue)
 
 
 
@@ -243,3 +268,283 @@ ggplot(df, aes(x = sum1, y = sum2, label = chr)) +
   labs(x = "Knockoff", y = "Knockoff-anno",
        title = "Scatter Plot with Chromosome Labels") +
   theme_minimal()
+
+
+
+
+
+
+
+
+
+
+
+
+sum_all <- numeric()
+sum4_all = c()
+sum3_all = c()
+find4 <- c()
+find3 <- c()
+for(chrid in 1:22){
+  sum4 = c()
+  sum3 = c()
+  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GTEx/result_new_500k_enhancer/adakn_chr_", chrid, "_ct_", celltype, ".RData")
+  
+  if (!file.exists(path)) {
+    message("not exist: ", path)
+    break
+  }
+  load(path)
+  
+  print(length(all_result))
+  
+  sum_all <- append(sum_all, length(all_result))
+  
+  for(gene_i in 1:length(all_result)){
+    print(gene_i)
+    adakn_result = all_result[[gene_i]]
+    
+    W1 = adakn_result$ghostknockoff
+    tau = knockoff.threshold(W1,fdr = alpha,offset = 1)
+    rej1 = as.numeric(which(W1>=tau))
+    print("rej1:")
+    print(rej1)
+    
+    if(length(rej1 > 0)){
+      sum4 = append(sum4, gene_i)
+      find4 <- append(find4, paste(chrid, gene_i))
+    }
+    sum4_all <- append(sum4_all, length(sum4))
+    
+    if(length(adakn_result$adakn) == 1){
+      rej3 = rej1
+    }else{
+      rej3 = adakn_result$adakn$rejs[[2]]
+    }
+    
+    print("rej3:")
+    print(rej3)
+    if(length(rej3 > 0)){
+      sum3 = append(sum3, gene_i)
+      find3 <- append(find3, paste(adakn_result$chr, adakn_result$gene_i))
+    }
+    sum3_all <- append(sum3_all, length(sum3))
+  }
+}
+
+
+
+
+
+celltype = 'Whole_Blood'
+celltype = "Brain_Cortex"
+celltype = 'Muscle_Skeletal'
+celltype = 'Adipose_Subcutaneous'
+celltype = "Artery_Tibial"
+celltype = "Adipose_Visceral_Omentum"
+celltype = "Lung"
+celltype = 'Pancreas'
+celltype = 'Liver'
+celltype = "Skin_Sun_Exposed_Lower_leg"
+celltype = "Thyroid"
+celltype = "Nerve_Tibial"
+celltype = "Breast_Mammary_Tissue"
+
+
+
+celltype = "Brain_Cortex"
+
+sum_all_ct <- data.frame(matrix(nrow = 22, ncol = 0))
+number_gene_ct <- data.frame(matrix(nrow = 22, ncol = 0))
+find1_all <- list()
+find2_all <- list()
+
+
+allcelltype = c('Muscle_Skeletal', 'Whole_Blood',"Skin_Sun_Exposed_Lower_leg","Artery_Tibial",
+                'Adipose_Subcutaneous', "Thyroid", "Nerve_Tibial", "Skin_Not_Sun_Exposed_Suprapubic","Lung", "Esophagus_Mucosa")
+
+type = 1
+alpha = 0.1
+pc = 5
+lnc = FALSE
+
+
+for(celltype in allcelltype){
+  
+  number_gene <- numeric()
+  
+  for(chrid in as.character(1:22)){
+    print(celltype)
+    print(chrid)
+    library(data.table)
+    library(genio)
+    library(tidyr)
+    library(dplyr)
+    library(bigstatsr)
+    
+    
+    bedNA <- function(bed1){
+      for(j in 1:ncol(bed1)){
+        temp <- bed1[,j]
+        temp[is.na(temp)] <- mean(temp,na.rm = TRUE)
+        bed1[,j] <- temp
+        #print(j)
+      }
+      return(bed1)
+    }
+    
+    
+    
+    gexp_path = paste0('/gpfs/gibbs/pi/zhao/jz874/jiazhao/Xiangyu/TWAS_fm/GTEx_Gene_expression_adjust_covariates/adjusted_expr_age_sex_',pc,'genopcs_5peers')
+    
+    directory_path <- paste(gexp_path, "/chr",chrid, sep="")
+    # List all folders in the specified directory
+    folder_names <- list.dirs(directory_path, full.names = FALSE, recursive = FALSE)
+    genes <- sub("\\..*", "", folder_names)
+    
+    library(biomaRt)
+    
+    while (TRUE) {
+      ensembl <- try({
+        # useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl")
+        useMart(biomart = "ensembl", dataset = "hsapiens_gene_ensembl", host="https://www.ensembl.org")
+      })
+      if (!isa(ensembl, "try-error"))
+        break
+      else{
+        Sys.sleep(3)
+        print(ensembl)
+        print("try ensembl again!")
+      }
+    }
+    
+    print("useMart")
+    
+    while (TRUE) {
+      z <- try({
+        getBM(c("ensembl_gene_id", "hgnc_symbol", "chromosome_name", "start_position", "end_position", "transcript_biotype"),
+              "ensembl_gene_id", genes, mart = ensembl)
+      })
+      if (!isa(z, "try-error"))
+        break
+      else{
+        Sys.sleep(3)
+        print(z)
+        print("try z again!")
+      }
+      
+    }
+    
+    index <- match(z$ensembl_gene_id, genes)
+    z$folder_names <- folder_names[index]
+    risk_gene <- z
+    
+    if(lnc == FALSE){
+      risk_gene <- risk_gene[risk_gene$transcript_biotype %in% c("protein_coding"),]
+    }else{
+      risk_gene <- risk_gene[risk_gene$transcript_biotype %in% c("protein_coding", "lncRNA"),]
+    }
+    
+    risk_gene <- risk_gene[!duplicated(risk_gene$ensembl_gene_id),]
+    
+    
+    remain <- numeric()
+    for(j in 1:nrow(risk_gene)){
+      gene_info <- risk_gene[j,]
+      path <- paste(gexp_path, "/chr",
+                    chrid,"/",gene_info$folder_names,"/",celltype,".adj_expr", sep="")
+      if (!file.exists(path)) {
+        next  # Skip this iteration and move to the next one
+      }
+      remain <- append(remain, j)
+    }
+    
+    risk_gene <- risk_gene[remain,]
+    print(dim(risk_gene))
+    number_gene <- append(number_gene, nrow(risk_gene))
+  }
+  
+  
+  
+  sum_all <- numeric()
+  sum1_all = c()
+  sum2_all = c()
+  find1 <- c()
+  find2 <- c()
+  for(chrid in 1:22){
+    # print(chrid)
+    sum1 = c()
+    sum2 = c()
+    path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GTEx/result_new_500k_enhancer/chr_", chrid, "_ct_", celltype, "_type_", type, ".RData")
+    
+    if (!file.exists(path)) {
+      message("not exist: ", path)
+      break
+    }
+    load(path)
+    
+    # print(length(all_result))
+    
+    sum_all <- append(sum_all, length(all_result))
+    
+    for(gene_i in 1:length(all_result)){
+      # print(gene_i)
+      adakn_result = all_result[[gene_i]]
+      
+      W1 = adakn_result$ghostknockoff
+      tau = knockoff.threshold(W1,fdr = alpha,offset = 1)
+      rej1 = as.numeric(which(W1>=tau))
+      # print("rej1:")
+      # print(rej1)
+      if(length(rej1 > 0)){
+        sum1 = append(sum1, gene_i)
+        find1 <- append(find1, paste(chrid, gene_i))
+      }
+      result_raw <- adakn_result$knockoff_anno
+      
+      beta = result_raw$beta
+      p = length(beta)/2
+      T = abs(beta[1:p])
+      T_tilde = abs(beta[(p+1):(2*p)])
+      T_max = pmax(T,T_tilde)
+      W = T - T_tilde
+      # hist(W, breaks = 50)
+      tau = knockoff.threshold(W,fdr = alpha,offset = 1)
+      rej2 = as.numeric(which(W >= tau))
+      
+      # print("rej3:")
+      # print(rej3)
+      if(length(rej2 > 0)){
+        sum2 = append(sum2, gene_i)
+        find2 <- append(find2, paste(adakn_result$chr, adakn_result$gene_i))
+      }
+    }
+    sum1_all <- append(sum1_all, length(sum1))
+    sum2_all <- append(sum2_all, length(sum2))
+  }
+  
+  cbind(number_gene, sum_all)
+  
+  print(length(find1))
+  print(length(find2))
+  
+  sum_all_ct[[celltype]] = sum_all
+  number_gene_ct[[celltype]] = number_gene
+  
+  find1_all <- append(find1_all, list(find1))
+  find2_all <- append(find2_all, list(find2))
+  
+}
+
+
+
+(sapply(find2_all, length) - sapply(find1_all, length))/sapply(find1_all, length)
+
+sum_all_ct
+number_gene_ct
+
+number_gene_ct - sum_all_ct
+# a = numeric()
+# for(adakn_result in all_result){
+#   a = append(a, adakn_result$gene_i)
+# }

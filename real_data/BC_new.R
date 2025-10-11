@@ -1,4 +1,7 @@
 
+
+
+
 args = commandArgs(trailingOnly=TRUE)
 options(stringsAsFactors=F)
 
@@ -28,31 +31,26 @@ bedNA <- function(bed1){
 
 
 ################ load the summary statistics
-ancestry0 = 'EUR'
-ancestry1 = c('AFR')
+ancestry0 = 'EAS'
+ancestry1 = c('EUR')
 
 
 ancestry = ancestry0
-if(ancestry0 == 'AFR'){
-  ancestry = 'AA'
-}
-path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GK_anno/Height/GIANT_HEIGHT_YENGO_2022_GWAS_SUMMARY_STATS_", ancestry)
-sum_s <- read.table(path, header = TRUE, sep = '\t')
+path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GK_anno/BC_published/", ancestry0, ".txt")
+sum_s <- read.table(path, header = TRUE)
 # we also checked that all SNPs are in (A,T,G,C)
-colnames(sum_s) <- c("SNPID", "SNP", "Chromsome","Position", "EffectAllele", "NonEffectAllele", "EffectAF", "Beta", "SE","Pval","Neff")
+colnames(sum_s) <- c("SNP", "Chromsome","Position", "EffectAllele", "NonEffectAllele", "SNPID", "effect_allele", 
+                     "eaf", "Beta", "SE","Pval","N_case","N_control","Neff")
 sum_s[[ancestry]] <- sum_s$Pval
 print(length(unique(sum_s$SNP)) == nrow(sum_s))
 
 # ,'HIS','SAS','EAS','AFA'
 for(ancestry in ancestry1){
-  if(ancestry == 'AFR'){
-    ancestry_temp = 'AA'
-  }else{
-    ancestry_temp = ancestry
-  }
-  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GK_anno/Height/GIANT_HEIGHT_YENGO_2022_GWAS_SUMMARY_STATS_", ancestry_temp)
-  temp <- read.table(path, header = TRUE, sep = '\t')
-  colnames(temp) <- c("SNPID", "SNP", "Chromsome","Position", "EffectAllele", "EffectAF", "NonEffectAllele", "Beta", "Se","Pval","Neff")
+  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GK_anno/BC_published/", ancestry, ".txt")
+  temp <- read.table(path, header = TRUE)
+  colnames(temp) <- c("SNP", "Chromsome","Position", "EffectAllele", "NonEffectAllele", "SNPID", "effect_allele", 
+                      "eaf", "Beta", "SE","Pval","N_case","N_control","Neff")
+  
   message(ancestry, ": unique SNP? ", length(unique(temp$SNP)) == nrow(temp))
   index <- match(sum_s$SNP, temp$SNP)
   print(table(is.na(index)))
@@ -66,19 +64,24 @@ for(ancestry in ancestry1){
 
 ###############
 
+
 M = 1
 seed = 12345
 
 
 for(M in c(1,3,5)){
-  for(seed in c(12345)){
+  for(seed in c(100, 1000, 123, 1234, 12345)){
     sums_chr = sum_s[sum_s$Chromsome == chrid,]
     sums_chr <- sums_chr[order(sums_chr$Position),]
     
     ################ load the reference panel from 1KG
     
     # ancestry = 'EUR'
-    path <- paste("/gpfs/gibbs/pi/zhao/xz527/TWAS_fm/simu_sep/1000G/AFR/bychr_", ancestry0, "/1KG_chr", chrid,sep='')
+    if(ancestry0 == 'EUR'){
+      path <- paste("/gpfs/gibbs/pi/zhao/xz527/TWAS_fm/simu_sep/1000G/AFR/bychr_", ancestry0, "/1KG_chr", chrid,sep='')
+    }else if(ancestry0 == 'EAS'){
+      path <- paste("/gpfs/gibbs/pi/zhao/xz527/TWAS_fm/simu_sep/1000G/EAS/bychr_", ancestry0, "/1KG_chr", chrid,sep='')
+    }
     ref_chr <- read_plink(path)
     
     ############### load the annotation data
@@ -106,13 +109,13 @@ for(M in c(1,3,5)){
     
     len_half = 250000
     # risk_id <- which(sums_chr$Pval < 5 * 10^-8)
-    risk_id <- which(sums_chr$EUR < 5 * 10^-8)
+    risk_id <- which(sums_chr$EUR < 5 * 10^-6)
     pos_id = unlist(sums_chr$Position[risk_id])
     pos_diff <- diff(pos_id)
     where_sep = as.numeric(c(0, which(pos_diff > 2 * len_half)))
     risk_region = numeric()
-    
-    
+
+
     if(length(where_sep) > 1){
       for(i in 1:(length(where_sep)-1)){
         risk_region <- rbind(risk_region, c(pos_id[where_sep[i] + 1] - len_half, pos_id[where_sep[i+1]] + len_half))
@@ -121,13 +124,14 @@ for(M in c(1,3,5)){
     }else if(length(where_sep) == 1){
       risk_region <- rbind(risk_region, c(pos_id[where_sep[length(where_sep)] + 1] - len_half, pos_id[length(pos_id)] + len_half))
     }
-    
-    path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/Height/annot_pvalus/risk_region/",ancestry0,"_chr_", chrid,".txt")
+
+    path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/BC_published/annot_pvalus/risk_region/",ancestry0,"_chr_", chrid,"5e-6.txt")
     write.table(risk_region, path, row.names = FALSE, col.names = FALSE, quot = FALSE)
+
+    ### risk_region <- risk_region[2:nrow(risk_region),] remove the first region (MHC on chromosome 6)
+
     
-    
-    
-    path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/Height/annot_pvalus/risk_region/","EUR","_chr_", chrid,".txt")
+    path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/BC_published/annot_pvalus/risk_region/","EUR","_chr_", chrid,"5e-6.txt")
     risk_region <- read.table(path)
     
     ################### address allele flipping
@@ -219,12 +223,10 @@ for(M in c(1,3,5)){
       
       #### use hierarchical clustering to cluster SNPs
       
-      # d <- as.dist(1 - R)  # higher distance = lower correlation
-      R2 <- R^2
-      d <- as.dist(1 - R2) # cluster SNPs with r² > 0.5
+      d <- as.dist(1 - R)  # higher distance = lower correlation
       hc <- hclust(d, method = "average")
       hc <- as.dendrogram(hc)
-      clusters <- cutree(hc, h = 0.75)  # e.g., cluster SNPs with r² > 0.5
+      clusters <- cutree(hc, h = 0.5)  # e.g., cluster SNPs with r² > 0.6
       length(table(clusters))
       mean(table(clusters)) # average size for each cluster
       
@@ -261,7 +263,7 @@ for(M in c(1,3,5)){
       ##########
       X_final = scale(X_final)
       table(colnames(X_final) == bim_final$id)
-      table(bim_final$pos == annot_final$Position)
+      table(bim_final$id == annot_final$SNPID)
       LD = cor(X_final)
       p = nrow(LD)
       
@@ -328,11 +330,12 @@ for(M in c(1,3,5)){
                    lambda_s = lambda_s)
     
     other = paste(ancestry1, collapse = "_")
-    # path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/Height/annot_pvalus/result/", ancestry0, "_result_dss_", other, "_chr_",chrid, "_M_", M, "_", seed, ".RData")
-    path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/Height/annot_pvalus/result/", ancestry0, "_result_final_10_median_r2_", other, "_chr_",chrid, "_M_", M, "_", seed, ".RData")
+    # path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/BC_published/annot_pvalus/result/", ancestry0, "_result_final_10_median_", other, "_chr_",chrid, "_M_", M, "_", seed, ".RData")
+    path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/BC_published/annot_pvalus/result/", ancestry0, "_result_final_10_median_", other, "_chr_",chrid, "_M_", M, "_", seed, "5e-6.RData")
     save(result, file = path)
+    
+    
     
   }
 }
-
 

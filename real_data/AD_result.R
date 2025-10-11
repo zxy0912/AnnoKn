@@ -65,8 +65,8 @@ threshold = 0.1
 sum1 = 0
 sum2 = 0
 chrid = '1'
-M = 3
-seed = '1234'
+M = 1
+seed = '12345'
 # seed = '12345' for dss
 
 
