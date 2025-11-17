@@ -200,11 +200,11 @@ grid.arrange(p1, p2, ncol = 2)
 
 
 
+#################################### continuous ####################################
 
 
 
-
-p = 1000
+p = 600
 
 
 library(ggplot2)
@@ -213,7 +213,7 @@ library(dplyr)
 iteration = 100
 alphalist <- seq(0.4, 0.1, by = -0.05)
 len = length(alphalist)
-heri_list <- c(0.05, 0.1)
+heri_list <- c(0.05, 0.1, 0.2)
 
 
 all_plot_data <- data.frame()
@@ -244,10 +244,10 @@ for (h in heri_list) {
   fdr_means   <- unlist(lapply(fdr_list, function(x) colMeans(x, na.rm = TRUE)))
   
   name_method <- c('Knockoff', 
-                   'AnnoKn-simple', 
+                   'AnnoKn-lite', 
                    'AnnoKn', 
                    'GhostKnockoff', 
-                   'AnnoGK-simple',
+                   'AnnoGK-lite',
                    'AnnoGK',
                    'AnnoGK-dss', 
                    'GhostKnockoff M=5', 
@@ -279,29 +279,65 @@ for (h in heri_list) {
 
 all_plot_data$measure <- factor(all_plot_data$measure, levels = c("Power", "FDR"))
 
-colors <- c("Knockoff" = "#E69F00",
-            "AnnoKn" = "#FF0000",
+colors <- c("Knockoff" = "#e6ab02",
+            "AnnoKn" = "#F8766D",
             "GhostKnockoff" = "#7570b3",
-            "AnnoGK" = "#e7298a",
-            "AnnoKn-simple" = "#66a61e",
-            "AnnoGK-simple" = "#e6ab02")
+            "AnnoGK" = "#4DAF4A",
+            "AnnoKn-lite" = "#619CFF",
+            "AnnoGK-lite" = "#D55E00")
+
+
+# colors <- c('Adapt' = '#1b9e77', 
+#             'Knockoff' = '#e6ab02', 
+#             'AdaKn (GLM)' = '#d95f02', 
+#             'AdaKn (GAM)' = '#00BFC4', 
+#             'AdaKn (RF)' = '#e7298a',
+#             'AdaKn (EM)' = '#C77CFF',
+#             'AnnoKn' = '#F8766D', 
+#             'AnnoKn-lite' = '#619CFF')
+
+# shapes <- c('Adapt' = 11,
+#             "Knockoff" = 16,
+#             'AdaKn (GLM)' = 12,
+#             'AdaKn (GAM)' = 13,
+#             'AdaKn (RF)' = 17,
+#             'AdaKn (EM)' = 7,
+#             "AnnoKn" = 8,
+#             "AnnoKn-lite" = 5)
 
 shapes <- c("Knockoff" = 16,
             "AnnoKn" = 8,
             "GhostKnockoff" = 15,
             "AnnoGK" = 3,
-            "AnnoKn-simple" = 5,
-            "AnnoGK-simple" = 4)
+            "AnnoKn-lite" = 5,
+            "AnnoGK-lite" = 4)
+
+# linetypes <- c('Adapt' = "82",
+#                "Knockoff" = "solid",
+#                'AdaKn (GLM)' = "41",
+#                'AdaKn (GAM)' = "14",
+#                "AdaKn (RF)" = "22",
+#                'AdaKn (EM)' = "81",
+#                "AnnoKn" = "dashed",
+#                "AnnoKn-lite" = "dotted")
+
+linetypes <- c("Knockoff" = "solid",
+               "AnnoKn" = "dashed",
+               "GhostKnockoff" = "23",
+               "AnnoGK" = "21",
+               "AnnoKn-lite" = "dotted",
+               "AnnoGK-lite" = "24")
 
 plot_data_with_limits <- all_plot_data %>%
   mutate(ymax = ifelse(measure == "FDR", 0.4, 1))
 
-g <- ggplot(all_plot_data, aes(x = alpha, y = value, color = method, shape = method)) +
+g <- ggplot(all_plot_data, aes(x = alpha, y = value, color = method, shape = method, linetype = method)) +
   geom_line(linewidth = 0.5) +
   geom_point(size = 1) +
   scale_color_manual(values = colors) +
   scale_shape_manual(values = shapes) +
-  facet_grid(measure ~ heritability, switch = "y", scales = "free_y") +  # 允许不同行不同y轴
+  scale_linetype_manual(values = linetypes) +
+  facet_grid(measure ~ heritability, switch = "y", scales = "free_y") +  
   theme_minimal() +
   labs(x = "Target FDR", y = NULL) +
   theme(
@@ -332,9 +368,9 @@ g <- g + geom_blank(
 
 print(g)
 
-ggsave("/gpfs/gibbs/pi/zhao/xz527/annoKn_plots/AnnoGK_simu_strong_p1000.pdf", 
+ggsave("/gpfs/gibbs/pi/zhao/xz527/annoKn_plots/AnnoGK_simu_strong_p600.pdf", 
        g, 
-       width = 7, height = 5, units = "in", 
+       width = 9, height = 5, units = "in", 
        bg = "white", device = cairo_pdf)
 
 
@@ -351,3 +387,184 @@ plot(beta,
      ylab = "True coefficient")
 
 box(bty = "n")
+
+
+
+
+
+#################################### binary ####################################
+
+
+
+p = 1000
+
+
+library(ggplot2)
+library(dplyr)
+
+iteration = 100
+alphalist <- seq(0.4, 0.1, by = -0.05)
+len = length(alphalist)
+heri_list <- c(0.05, 0.1, 0.2)
+
+
+all_plot_data <- data.frame()
+
+for (h in heri_list) {
+  
+  power_list <- lapply(1:11, function(x) matrix(0, nrow = iteration, ncol = len))
+  fdr_list   <- lapply(1:11, function(x) matrix(0, nrow = iteration, ncol = len))
+  
+  removelist <- c()
+  
+  for (i in 1:iteration) {
+    path <- paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/ghostknockoff/simulation/AnnoGK_simu/result/heri_final_10_binary_",
+                   h, "_n_", 5000, "_p_", p, "_", i, ".RData")
+    if (!file.exists(path)) {
+      removelist <- c(removelist, i)
+      next
+    }
+    load(path)
+    
+    for (j in 1:11) {
+      power_list[[j]][i, ] <- result[[paste0("power", j)]]
+      fdr_list[[j]][i, ]   <- result[[paste0("fdr", j)]]
+    }
+  }
+  
+  power_means <- unlist(lapply(power_list, function(x) colMeans(x, na.rm = TRUE)))
+  fdr_means   <- unlist(lapply(fdr_list, function(x) colMeans(x, na.rm = TRUE)))
+  
+  name_method <- c('Knockoff', 
+                   'AnnoKn-lite', 
+                   'AnnoKn', 
+                   'GhostKnockoff', 
+                   'AnnoGK-lite',
+                   'AnnoGK',
+                   'AnnoGK-dss', 
+                   'GhostKnockoff M=5', 
+                   'AnnoGK-simple M=5',
+                   'AnnoGK M=5', 
+                   'AnnoGK-dss M=5')
+  
+  methods <- c("Knockoff", "AnnoKn", "GhostKnockoff",
+               "AnnoGK")
+  
+  method <- rep(name_method, each = len)
+  tmp_df <- data.frame(
+    alpha = rep(alphalist, 11),
+    method = method,
+    power = power_means,
+    fdr = fdr_means,
+    heritability = paste0("h\u00B2 = ", h)   # facet label
+  )
+  
+  tmp_df <- tmp_df[tmp_df$method %in% methods, ]
+  
+  tmp_df_long <- bind_rows(
+    tmp_df %>% transmute(alpha, value = power, method, heritability, measure = "Power"),
+    tmp_df %>% transmute(alpha, value = fdr,   method, heritability, measure = "FDR")
+  )
+  
+  all_plot_data <- rbind(all_plot_data, tmp_df_long)
+}
+
+all_plot_data$measure <- factor(all_plot_data$measure, levels = c("Power", "FDR"))
+
+colors <- c("Knockoff" = "#e6ab02",
+            "AnnoKn" = "#F8766D",
+            "GhostKnockoff" = "#7570b3",
+            "AnnoGK" = "#4DAF4A",
+            "AnnoKn-lite" = "#619CFF",
+            "AnnoGK-lite" = "#D55E00")
+
+
+# colors <- c('Adapt' = '#1b9e77', 
+#             'Knockoff' = '#e6ab02', 
+#             'AdaKn (GLM)' = '#d95f02', 
+#             'AdaKn (GAM)' = '#00BFC4', 
+#             'AdaKn (RF)' = '#e7298a',
+#             'AdaKn (EM)' = '#C77CFF',
+#             'AnnoKn' = '#F8766D', 
+#             'AnnoKn-lite' = '#619CFF')
+
+# shapes <- c('Adapt' = 11,
+#             "Knockoff" = 16,
+#             'AdaKn (GLM)' = 12,
+#             'AdaKn (GAM)' = 13,
+#             'AdaKn (RF)' = 17,
+#             'AdaKn (EM)' = 7,
+#             "AnnoKn" = 8,
+#             "AnnoKn-lite" = 5)
+
+shapes <- c("Knockoff" = 16,
+            "AnnoKn" = 8,
+            "GhostKnockoff" = 15,
+            "AnnoGK" = 3,
+            "AnnoKn-lite" = 5,
+            "AnnoGK-lite" = 4)
+
+# linetypes <- c('Adapt' = "82",
+#                "Knockoff" = "solid",
+#                'AdaKn (GLM)' = "41",
+#                'AdaKn (GAM)' = "14",
+#                "AdaKn (RF)" = "22",
+#                'AdaKn (EM)' = "81",
+#                "AnnoKn" = "dashed",
+#                "AnnoKn-lite" = "dotted")
+
+linetypes <- c("Knockoff" = "solid",
+               "AnnoKn" = "dashed",
+               "GhostKnockoff" = "23",
+               "AnnoGK" = "21",
+               "AnnoKn-lite" = "dotted",
+               "AnnoGK-lite" = "24")
+
+plot_data_with_limits <- all_plot_data %>%
+  mutate(ymax = ifelse(measure == "FDR", 0.4, 1))
+
+g <- ggplot(all_plot_data, aes(x = alpha, y = value, color = method, shape = method, linetype = method)) +
+  geom_line(linewidth = 0.5) +
+  geom_point(size = 1) +
+  scale_color_manual(values = colors) +
+  scale_shape_manual(values = shapes) +
+  scale_linetype_manual(values = linetypes) +
+  facet_grid(measure ~ heritability, switch = "y", scales = "free_y") +  
+  theme_minimal() +
+  labs(x = "Target FDR", y = NULL) +
+  theme(
+    text = element_text(family = "Arial"),
+    strip.background = element_rect(fill = "grey90", color = NA),
+    strip.text = element_text(size = 10),
+    axis.text = element_text(size = 9),
+    legend.text = element_text(size = 9),
+    legend.title = element_text(size = 10),
+    panel.grid.major = element_line(color = "grey80", linewidth = 0.5),
+    panel.grid.minor = element_line(color = "grey90", linewidth = 0.25)
+  )
+
+fdr_data <- subset(all_plot_data, measure == "FDR")
+g <- g + geom_line(
+  data = fdr_data,
+  aes(x = alpha, y = alpha),
+  inherit.aes = FALSE,
+  linetype = "dashed",
+  color = "black",
+  linewidth = 0.3
+)
+
+g <- g + geom_blank(
+  data = plot_data_with_limits,
+  aes(y = ymax)
+)
+
+print(g)
+
+ggsave("/gpfs/gibbs/pi/zhao/xz527/annoKn_plots/AnnoGK_simu_strong_binary_p1000.pdf", 
+       g, 
+       width = 9, height = 5, units = "in", 
+       bg = "white", device = cairo_pdf)
+
+
+
+

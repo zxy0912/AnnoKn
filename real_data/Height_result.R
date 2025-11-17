@@ -43,7 +43,7 @@ sum1 = 0
 sum2 = 0
 chrid = '5'
 M = 1
-seed = '100'
+seed = '1000'
 # seed = '12345' for dss
 
 

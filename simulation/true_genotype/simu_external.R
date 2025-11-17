@@ -1,15 +1,37 @@
+
+
+
 args = commandArgs(trailingOnly=TRUE)
 options(stringsAsFactors=F)
 args <- as.numeric(args)
 
 iter <- args[1]
 
-
+seed = 1234*iter
 
 source("/home/xz527/Rcode/knockoff_anno/KF_anno/KF_anno.R")
 source("/home/xz527/Rcode/knockoff_anno/GK_anno/GK_anno.R")
 source("/home/xz527/Rcode/knockoff_anno/GK_anno/GhostKnockoff.R")
 packageVersion("Matrix") 
+
+regularization = ''
+regularization = 'regu'
+
+
+source_gitfile <- function(filename){
+  source(sprintf("%s.R", filename))
+}
+file_vec <- c("/home/xz527/Rcode/knockoff_side/code//utils/all_other_methods",
+              "/home/xz527/Rcode/knockoff_side/code/utils/adaptive_knockoff",
+              "/home/xz527/Rcode/knockoff_side/code/utils/filter_EM",
+              "/home/xz527/Rcode/knockoff_side/code/utils/filter_gam",
+              "/home/xz527/Rcode/knockoff_side/code/utils/filter_glm",
+              "/home/xz527/Rcode/knockoff_side/code/utils/filter_randomForest",
+              "/home/xz527/Rcode/knockoff_side/code/utils/All_q_est_functions",
+              "/home/xz527/Rcode/knockoff_side/code/utils/accumulation_test_functions")
+getfile <- sapply(file_vec,source_gitfile)
+
+
 
 
 
@@ -39,7 +61,7 @@ maf_cal <- function(x){
 N.effect = 10000 # sample size
 n1 = 1000 # sample size used for clustering
 # p = 200 # number of variable
-h2e = 0.05 # heritability
+h2e = 0.1 # heritability
 alphae = 0.1 # proportion of causal SNPs
 p1 = 100 # number of risk SNPs
 # rho = 0.5 # maximum correlation between SNPs
@@ -52,14 +74,19 @@ len = length(fdr_seq)
 #### load the information for each risk region
 ancestry = 'EUR'
 chrid = '1'
-path <- paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/UKBB/",ancestry,"_0.05maf/bychr/chr_",chrid,"_2w_new")
+path <- paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/UKBB/",ancestry,"_0.05maf/bychr/chr_",chrid,"_2w_common")
 genotype <- read_plink(path)
 
-snp_number = read.table(file = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/UKBB/EUR_0.05maf/real_simulation/region_information/chr", chrid,".txt"))
-good_iter <- which(snp_number$V3 > 200)
+snp_number = read.table(file = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/UKBB/EUR_0.05maf/real_simulation/region_information/chr", chrid,"_common.txt"))
+good_iter <- which(snp_number$V3 > 100)
 
 ld_block <- read.table("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/UKBB/EUR/fourier_ls-all.bed", header = TRUE)
 ld_block = ld_block[ld_block$chr == paste0("chr", chrid),]
+
+
+
+path <- paste("/gpfs/gibbs/pi/zhao/xz527/TWAS_fm/simu_sep/1000G/AFR/bychr_EUR/1KG_chr", chrid,sep='')
+ref_chr <- read_plink(path)
 
 
 
@@ -67,9 +94,10 @@ ld_block = ld_block[ld_block$chr == paste0("chr", chrid),]
 
 ######### start the iteration simulations:
 
-for(h2e in c(0.05)){
+for(h2e in c(0.05, 0.1, 0.2)){
   
-  for(alphae in c(0.05, 0.1, 0.2)){
+  for(alphae in c(0.1, 0.2, 0.3)){
+    set.seed(seed)
     i = sample(good_iter, 1)
     
     start = ld_block[i,2]
@@ -77,16 +105,18 @@ for(h2e in c(0.05)){
     index = which(genotype$bim$pos >= start & genotype$bim$pos <= end)
     
     X = t(genotype$X[index, 1:N.effect])
+    bim_ukb <- genotype$bim[index,]
     maf <- apply(X, 2, maf_cal)
     X = bedNA(X)
     
     #### use hierarchical clustering to cluster SNPs
     
     R = cor(X[1:n1,])
-    d <- as.dist(1 - R)  # higher distance = lower correlation
+    R2 <- R^2
+    d <- as.dist(1 - R2)
     hc <- hclust(d, method = "average")
     # plot(hc, labels = FALSE, main = "SNP clustering by LD")
-    clusters <- cutree(hc, h = 0.4)  # e.g., cluster SNPs with r² > 0.6
+    clusters <- cutree(hc, h = 0.75)  # e.g., cluster SNPs with r² > 0.6
     length(table(clusters))
     mean(table(clusters)) # average size for each cluster
     
@@ -109,6 +139,7 @@ for(h2e in c(0.05)){
     dim(representatives)
     index <- representatives$index[order(representatives$index)]
     X = X[, index]
+    bim_ukb <- bim_ukb[index, ]
     
     
     ##########
@@ -151,6 +182,8 @@ for(h2e in c(0.05)){
     power4 = numeric(len) ## Ghostknockoff 
     power5 = numeric(len) ## GK-simple pseudo sum
     power6 = numeric(len) ## GK-anno pseudo sum
+    power7 = numeric(len) ## AdaKn + EM
+    power8 = numeric(len) ## AdaKn + random forest
     
     
     fdr1 = numeric(len) ## knockoff
@@ -159,11 +192,13 @@ for(h2e in c(0.05)){
     fdr4 = numeric(len) ## Ghostknockoff 
     fdr5 = numeric(len) ## GK-simple pseudo sum
     fdr6 = numeric(len) ## GK-anno pseudo sum
+    fdr7 = numeric(len) ## AdaKn + EM
+    fdr8 = numeric(len) ## AdaKn + random forest
     
     
     ############### 1. knockoff ############
     start <- Sys.time()
-    
+    set.seed(seed)
     X_tilde = create.gaussian(X, rep(0,p), LD) # generate knockoff variable
     X_comb = cbind(X,X_tilde)
     
@@ -174,6 +209,7 @@ for(h2e in c(0.05)){
     T_tilde = abs(beta[(p+1):(2*p)])
     T_max = pmax(T0,T_tilde)
     W1 = T0-T_tilde
+    
     end <- Sys.time()
     
     for (j in 1:len) {
@@ -182,10 +218,10 @@ for(h2e in c(0.05)){
       rej1 = as.numeric(which(W1>=tau))
       power1[j] = power_cal(rej1, rand)
       fdr1[j] = fdr_cal(rej1, rand)
+      
     }
-    
-    time1 = end - start
-    cat("knockoff time:", as.numeric(end - start), "seconds\n")
+    time1 <- as.numeric(difftime(end, start, units = "secs"))
+    cat("knockoff time:", time1, "seconds\n")
     
     
     
@@ -196,6 +232,7 @@ for(h2e in c(0.05)){
     R <- scale(as.matrix(z))
     
     start <- Sys.time()
+    set.seed(seed)
     result = knockoff_simple(X = X, Xk = X_tilde, y = y, R = R)
     beta = result$beta
     
@@ -205,8 +242,8 @@ for(h2e in c(0.05)){
     W2 = T0-T_tilde
     
     end <- Sys.time()
-    time2 = end - start
-    cat("knockoff-simple time:", as.numeric(end - start), "seconds\n")
+    time2 <- as.numeric(difftime(end, start, units = "secs"))
+    cat("knockoff-simple time:", time2, "seconds\n")
     
     for (j in 1:len) {
       alpha = alphalist[j]
@@ -219,6 +256,7 @@ for(h2e in c(0.05)){
     ############### 3. knockoff-anno with annotation
     
     start <- Sys.time()
+    set.seed(seed)
     result = knockoff_anno_improved(X = X, Xk = X_tilde, y = y, R = R)
     beta = result$beta
     
@@ -229,8 +267,8 @@ for(h2e in c(0.05)){
     
     
     end <- Sys.time()
-    time3 = end - start
-    cat("knockoff-anno time:", as.numeric(end - start), "seconds\n")
+    time3 <- as.numeric(difftime(end, start, units = "secs"))
+    cat("knockoff-anno time:", time3, "seconds\n")
     
     
     for (j in 1:len) {
@@ -246,21 +284,79 @@ for(h2e in c(0.05)){
     
     
     
+    ########### external reference panel:
+    
+    
+    
+    snp_name <- colnames(X)
+    snp_index <- match(snp_name, ref_chr$bim$id)
+    X_ref <- ref_chr$X[snp_index,]
+    bim_ref <- ref_chr$bim[snp_index,]
+    X_ref <- bedNA(t(X_ref))
+    X_ref <- scale(X_ref)
+    
+    LD_ref <- cor(X_ref)
+    
+    
+    library(susieR)
+    lambda = estimate_s_rss(Z, LD_ref, n = N.effect)
+    print(lambda)
+    
+    
+    inv <- which(bim_ukb$alt==bim_ref$ref & bim_ukb$ref==bim_ref$alt)
+    print(length(inv))
+    
+    Z[inv] = -Z[inv]
+    a <- bim_ukb$alt[inv]
+    bim_ukb$alt[inv] <- bim_ukb$ref[inv]
+    bim_ukb$ref[inv] <- a
+    
+    print(table(bim_ukb$alt==bim_ref$alt & bim_ukb$ref==bim_ref$ref))
+    
+    
+    falseid <- which((bim_ukb$alt==bim_ref$alt & bim_ukb$ref==bim_ref$ref)==F)
+    
+    print(paste("number of falseid:",length(falseid)))
+    
+    # if(length(falseid)>0){
+    #   print("removing false SNPs:")
+    #   print(falseid)
+    #   Z <- Z[-falseid,]
+    #   bim_ref <- bim_ref[-falseid,]
+    #   X_ref <- X_ref[,-falseid]
+    # }
+    # 
+    # print(table(bim_ukb$alt==bim_ref$alt & bim_ukb$ref==bim_ref$ref))
+    
+    LD_ref <- cor(X_ref)
+    # library(susieR)
+    lambda = estimate_s_rss(Z, LD_ref, n = N.effect)
+    print(lambda)
+    
+    if(regularization == 'regu'){
+      LD_ref  = 0.1 * diag(nrow(LD_ref)) + 0.9 * LD_ref
+      lambda = estimate_s_rss(Z, LD_ref, n = N.effect)
+      print(lambda)
+    }
+    
     
     ################## 4. ghostknockff
     
+
     
     start <- Sys.time()
+    set.seed(seed)
     fit.prelim <- GhostKnockoff.prelim(
-      cor.G   = LD,
+      cor.G   = LD_ref,
       M       = M,
       method  = "sdp" 
     )
     GK1_lasso <- GhostKnockoff.fit(Z, N.effect, fit.prelim, method='lasso')
     GK.filter<-GhostKnockoff.filter(GK1_lasso$T_0[[1]],GK1_lasso$T_k[[1]])
+    
     end <- Sys.time()
-    time4 = end - start
-    cat("ghostknockoff time:", as.numeric(end - start), "seconds\n")
+    time4 <- as.numeric(difftime(end, start, units = "secs"))
+    cat("ghostknockoff time:", time4, "seconds\n")
     
     
     for (j in 1:len){
@@ -274,14 +370,15 @@ for(h2e in c(0.05)){
     
     ############### 5. GK_simple pseudo sum 
     
+    
     start <- Sys.time()
+    set.seed(seed)
     GK1_M1_anno_ps  = GK_simple(Z = Z, 
                                 R = R, 
                                 M = 1, 
-                                LD = LD,
+                                LD = LD_ref,
                                 n = N.effect,
                                 ts = 'lasso')
-    
     beta <- GK1_M1_anno_ps$beta
     T_0<-abs(beta[1:p])
     T_k<-abs(matrix(beta[-(1:p)],p,M))
@@ -289,8 +386,8 @@ for(h2e in c(0.05)){
     GK.filter<-GhostKnockoff.filter(T_0,T_k)
     
     end <- Sys.time()
-    time5 = end - start
-    cat("ghostknockoff time:", as.numeric(end - start), "seconds\n")
+    time5 <- as.numeric(difftime(end, start, units = "secs"))
+    cat("ghostknockoff time:", time5, "seconds\n")
     
     
     for (j in 1:len){
@@ -305,19 +402,21 @@ for(h2e in c(0.05)){
     
     
     ############# 6. GK1 ps with annotation
-    start <- Sys.time()
     
-    GK1ps_anno = GK_anno(Z, R, M, LD, N.effect)
+    start <- Sys.time()
+    set.seed(seed)
+    GK1ps_anno = GK_anno_M(Z, R, M, LD_ref, N.effect)
+    
     
     beta <- GK1ps_anno$beta_final
-    T_0<-abs(beta[1:p])
-    T_k<-abs(matrix(beta[-(1:p)],p,M))
+    T_0<-GK1ps_anno$T_0
+    T_k<-GK1ps_anno$T_k
     
     GK.filter<-GhostKnockoff.filter(T_0,T_k)
     
     end <- Sys.time()
-    time6 = end - start
-    cat("ghostknockoff time:", as.numeric(end - start), "seconds\n")
+    time6 <- as.numeric(difftime(end, start, units = "secs"))
+    cat("ghostknockoff time:", time6, "seconds\n")
     
     
     
@@ -329,6 +428,57 @@ for(h2e in c(0.05)){
     }
     
     
+    ############ 7. Adaknockoff side with random forest filter
+    start <- Sys.time()
+    set.seed(seed)
+    X_tilde = create.gaussian(X, rep(0,p), LD) # generate knockoff variable
+    X_comb = cbind(X,X_tilde)
+    
+    mdl = cv.glmnet(X_comb,y,alpha=1)
+    cvlambda = mdl$lambda.min
+    beta = mdl$glmnet.fit$beta[,mdl$lambda ==mdl$lambda.min]
+    T0 = abs(beta[1:p])
+    T_tilde = abs(beta[(p+1):(2*p)])
+    T_max = pmax(T0,T_tilde)
+    W1 = T0-T_tilde
+    
+    # resj = filter_randomForest(W1,z,alpha =alphalist,offset=1)
+    resj = filter_randomForest(W1,z,alpha =alphalist,offset=1)
+    end <- Sys.time()
+    time7 <- as.numeric(difftime(end, start, units = "secs"))
+    for(j in 1:len){
+      rej7  = resj$rejs[[j]]
+      power7[j] = power_cal(rej7, rand)
+      fdr7[j] = fdr_cal(rej7, rand)
+    }
+    
+    
+    
+    ############ 8. Adaknockoff side with EM filter
+    # start <- Sys.time()
+    # set.seed(seed)
+    # X_tilde = create.gaussian(X, rep(0,p), LD) # generate knockoff variable
+    # X_comb = cbind(X,X_tilde)
+    # 
+    # mdl = cv.glmnet(X_comb,y,alpha=1)
+    # cvlambda = mdl$lambda.min
+    # beta = mdl$glmnet.fit$beta[,mdl$lambda ==mdl$lambda.min]
+    # T0 = abs(beta[1:p])
+    # T_tilde = abs(beta[(p+1):(2*p)])
+    # T_max = pmax(T0,T_tilde)
+    # W1 = T0-T_tilde
+    # 
+    # resj = filter_EM(W1, z, alpha = alphalist, offset = 1, df = 2)
+    # end <- Sys.time()
+    # time8 <- as.numeric(difftime(end, start, units = "secs"))
+    # for(j in 1:len){
+    #   rej8  = resj$rejs[[j]]
+    #   power8[j] = power_cal(rej8, rand)
+    #   fdr8[j] = fdr_cal(rej8, rand)
+    # }
+    
+    
+    
     result <- list(region = i,
                    power1 = power1,
                    power2 = power2,
@@ -336,27 +486,33 @@ for(h2e in c(0.05)){
                    power4 = power4,
                    power5 = power5,
                    power6 = power6,
+                   power7 = power7,
+                   # power8 = power8,
                    fdr1 = fdr1,
                    fdr2 = fdr2,
                    fdr3 = fdr3,
                    fdr4 = fdr4,
                    fdr5 = fdr5,
                    fdr6 = fdr6,
+                   fdr7 = fdr7,
+                   # fdr8 = fdr8,
                    time1 = time1,
                    time2 = time2,
                    time3 = time3,
                    time4 = time4,
                    time5 = time5,
                    time6 = time6,
+                   time7 = time7,
+                   # time8 = time8,
                    X = X,
                    y = y,
                    Xk = X_tilde)
     
-    path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/ghostknockoff/simulation/UKBB_simu/result/result_iter_", iter, "_n_", N.effect, "_h2e_", h2e, "_alphae_", alphae, "_p1_", p1, "_M_", M, "_chr_", chrid, ".RData")
+    path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/ghostknockoff/simulation/UKBB_simu/result/result_external_iter_", iter, "_n_", N.effect, "_h2e_", h2e, "_alphae_", alphae, "_p1_", p1, "_M_", M, "_chr_", chrid, regularization, ".RData")
     
     save(result, file = path)
     
-
+    
   }
   
 }

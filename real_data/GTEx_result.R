@@ -354,22 +354,87 @@ celltype = "Breast_Mammary_Tissue"
 
 celltype = "Brain_Cortex"
 
+
+
+########### new result
+
 sum_all_ct <- data.frame(matrix(nrow = 22, ncol = 0))
 number_gene_ct <- data.frame(matrix(nrow = 22, ncol = 0))
 find1_all <- list()
 find2_all <- list()
 
 
-allcelltype = c('Muscle_Skeletal', 'Whole_Blood',"Skin_Sun_Exposed_Lower_leg","Artery_Tibial",
-                'Adipose_Subcutaneous', "Thyroid", "Nerve_Tibial", "Skin_Not_Sun_Exposed_Suprapubic","Lung", "Esophagus_Mucosa")
 
-type = 1
-alpha = 0.1
+allcelltype = c('Muscle_Skeletal', 'Whole_Blood',"Skin_Sun_Exposed_Lower_leg","Artery_Tibial",
+                'Adipose_Subcutaneous', "Thyroid", "Nerve_Tibial", "Skin_Not_Sun_Exposed_Suprapubic", "Lung", "Esophagus_Mucosa")
+
+#, "Thyroid", "Nerve_Tibial", "Skin_Not_Sun_Exposed_Suprapubic",
+# "Lung", "Esophagus_Mucosa"
+
+type = 3
+alpha = 0.2
 pc = 5
 lnc = FALSE
 
 
+
+library(data.table)
+annot_all = fread(paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/LDSC/data/GRCh38/baselineLD_v2.2/baselineLD.", 1, ".annot.gz"))
+
+cats = c("SNP", "Promoter_UCSC", "Enhancer_Hoffman", "Coding_UCSC", "TFBS_ENCODE")
+if(type == 1){
+  cats = c("SNP", "Promoter_UCSC", "Enhancer_Hoffman", "TFBS_ENCODE")
+}else if(type == 2){
+  cats <- c(
+    "SNP",
+    # QTL
+    "GTEx_eQTL_MaxCPP",
+    "BLUEPRINT_H3K27acQTL_MaxCPP",
+    "BLUEPRINT_H3K4me1QTL_MaxCPP",
+    "BLUEPRINT_DNA_methylation_MaxCPP",
+    
+    # Promoter / TSS
+    "Promoter_UCSC",
+    "TSS_Hoffman",
+    "PromoterFlanking_Hoffman",
+    "Human_Promoter_Villar",
+    "Ancient_Sequence_Age_Human_Promoter",
+    "Human_Promoter_Villar_ExAC",
+    
+    # Enhancer / TFBS
+    "Enhancer_Andersson",
+    "Enhancer_Hoffman",
+    "SuperEnhancer_Hnisz",
+    "WeakEnhancer_Hoffman",
+    "TFBS_ENCODE",
+    "Human_Enhancer_Villar",
+    "Ancient_Sequence_Age_Human_Enhancer",
+    
+    # Histone marks
+    "H3K27ac_Hnisz",
+    "H3K27ac_PGC2",
+    "H3K4me1_peaks_Trynka",
+    "H3K4me1_Trynka",
+    "H3K4me3_peaks_Trynka",
+    "H3K4me3_Trynka",
+    "H3K9ac_peaks_Trynka",
+    "H3K9ac_Trynka"
+  )
+}else if(type == 3){
+  cats <- colnames(annot_all)[c(-1, -2, -4, -5)]
+}
+
+a_dim <- length(cats) - 1
+
+
+
+
+lambdas_all <- list()
+
+
 for(celltype in allcelltype){
+  
+  lambda_s <- numeric()
   
   number_gene <- numeric()
   
@@ -502,6 +567,22 @@ for(celltype in allcelltype){
       }
       result_raw <- adakn_result$knockoff_anno
       
+      
+      if(length(unlist(result_raw$lambda_s)) < a_dim){
+        print(paste("less than", a_dim,"annotation at celltype", celltype, "chr", adakn_result$chr, "gene", adakn_result$gene_i))
+        # print(celltype)
+        # print(adakn_result$chr)
+        # print(adakn_result$gene_i)
+        b = apply(adakn_result$R, 2, var)
+        a = numeric(a_dim)
+        a[b!=0] = unlist(result_raw$lambda_s)
+        a[b==0] = 0
+        lambda_s <- rbind(lambda_s, a)
+      }else{
+        lambda_s <- rbind(lambda_s, unlist(result_raw$lambda_s))
+      }
+      
+      
       beta = result_raw$beta
       p = length(beta)/2
       T = abs(beta[1:p])
@@ -534,17 +615,181 @@ for(celltype in allcelltype){
   find1_all <- append(find1_all, list(find1))
   find2_all <- append(find2_all, list(find2))
   
+  lambdas_all <- append(lambdas_all, list(lambda_s))
+  
 }
 
-
-
-(sapply(find2_all, length) - sapply(find1_all, length))/sapply(find1_all, length)
-
-sum_all_ct
-number_gene_ct
+sum_all_ct_0 = sum_all_ct
+number_gene_ct_0 = number_gene_ct
 
 number_gene_ct - sum_all_ct
 # a = numeric()
 # for(adakn_result in all_result){
 #   a = append(a, adakn_result$gene_i)
 # }
+
+
+improve_prop_0 = (sapply(find2_all, length) - sapply(find1_all, length))/sapply(find1_all, length)
+
+
+
+################################################ lambda_s
+
+i = 4
+j = 3
+
+celltype = allcelltype[i]
+name = c("Promoter", "Enhancer", "TFBS")[j]
+
+limited <- lambdas_all[[i]][, j]
+limited <- limited[which(abs(limited) < 2)]
+df <- data.frame(x = limited)
+
+ggplot(df, aes(x = x)) +
+  geom_histogram(
+    bins = 50,          
+    fill = "steelblue",
+    color = "white"
+  ) +
+  labs(
+    title = bquote("Distribution of " * lambda[l] * " of " * .(name) * " in the " * .(celltype) * " tissue"),
+    x = "Value",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+summary(limited)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+################## check the total number of protein coding genes
+
+
+number_gene_ct <- data.frame(matrix(nrow = 22, ncol = 0))
+
+
+allcelltype = c('Muscle_Skeletal', 'Whole_Blood',"Skin_Sun_Exposed_Lower_leg","Artery_Tibial",
+                'Adipose_Subcutaneous', "Thyroid", "Nerve_Tibial", "Skin_Not_Sun_Exposed_Suprapubic", "Lung", "Esophagus_Mucosa")
+
+type = 1
+alpha = 0.1
+pc = 5
+lnc = FALSE
+
+lambdas_all <- list()
+
+
+for(celltype in allcelltype){
+  
+  lambda_s <- numeric()
+  
+  number_gene <- numeric()
+  
+  for(chrid in as.character(1:22)){
+    print(celltype)
+    print(chrid)
+    library(data.table)
+    library(genio)
+    library(tidyr)
+    library(dplyr)
+    library(bigstatsr)
+    
+    
+    bedNA <- function(bed1){
+      for(j in 1:ncol(bed1)){
+        temp <- bed1[,j]
+        temp[is.na(temp)] <- mean(temp,na.rm = TRUE)
+        bed1[,j] <- temp
+        #print(j)
+      }
+      return(bed1)
+    }
+    
+    
+    
+    gexp_path = paste0('/gpfs/gibbs/pi/zhao/jz874/jiazhao/Xiangyu/TWAS_fm/GTEx_Gene_expression_adjust_covariates/adjusted_expr_age_sex_',pc,'genopcs_5peers')
+    
+    directory_path <- paste(gexp_path, "/chr",chrid, sep="")
+    # List all folders in the specified directory
+    folder_names <- list.dirs(directory_path, full.names = FALSE, recursive = FALSE)
+    genes <- sub("\\..*", "", folder_names)
+    
+    library(biomaRt)
+    
+    while (TRUE) {
+      ensembl <- try({
+        # useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl")
+        useMart(biomart = "ensembl", dataset = "hsapiens_gene_ensembl", host="https://www.ensembl.org")
+      })
+      if (!isa(ensembl, "try-error"))
+        break
+      else{
+        Sys.sleep(3)
+        print(ensembl)
+        print("try ensembl again!")
+      }
+    }
+    
+    print("useMart")
+    
+    while (TRUE) {
+      z <- try({
+        getBM(c("ensembl_gene_id", "hgnc_symbol", "chromosome_name", "start_position", "end_position", "transcript_biotype"),
+              "ensembl_gene_id", genes, mart = ensembl)
+      })
+      if (!isa(z, "try-error"))
+        break
+      else{
+        Sys.sleep(3)
+        print(z)
+        print("try z again!")
+      }
+      
+    }
+    
+    index <- match(z$ensembl_gene_id, genes)
+    z$folder_names <- folder_names[index]
+    risk_gene <- z
+    
+    if(lnc == FALSE){
+      risk_gene <- risk_gene[risk_gene$transcript_biotype %in% c("protein_coding"),]
+    }else{
+      risk_gene <- risk_gene[risk_gene$transcript_biotype %in% c("protein_coding", "lncRNA"),]
+    }
+    
+    risk_gene <- risk_gene[!duplicated(risk_gene$ensembl_gene_id),]
+    
+    
+    remain <- numeric()
+    for(j in 1:nrow(risk_gene)){
+      gene_info <- risk_gene[j,]
+      path <- paste(gexp_path, "/chr",
+                    chrid,"/",gene_info$folder_names,"/",celltype,".adj_expr", sep="")
+      if (!file.exists(path)) {
+        next  # Skip this iteration and move to the next one
+      }
+      remain <- append(remain, j)
+    }
+    
+    risk_gene <- risk_gene[remain,]
+    print(dim(risk_gene))
+    number_gene <- append(number_gene, nrow(risk_gene))
+  }
+  
+  number_gene_ct[[celltype]] = number_gene
+}
+

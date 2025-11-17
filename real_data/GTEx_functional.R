@@ -1,4 +1,9 @@
 
+#### note: for type 1 and type 2, we used the lams <- exp(seq(log(lambda)-1, log(lambda)+2, 0.1)), with more breaks and candidate lambda_0
+### for type 3, the annotations dimensional is around 100, we try to use the lams <- exp(seq(log(lambda)-1, log(lambda)+2, 0.2)) to include less lambda_0?
+### for type 3 now, we still use lams <- exp(seq(log(lambda)-1, log(lambda)+2, 0.1)), as only a few cases may fail
+
+
 args = commandArgs(trailingOnly=TRUE)
 options(stringsAsFactors=F)
 
@@ -59,7 +64,7 @@ type = 1
 pc = 5
 # chrid = 1
 lnc = FALSE
-celltype = "Breast_Mammary_Tissue"
+celltype = "Skin_Sun_Exposed_Lower_leg"
 # "Brain_Cortex" "Lung" "Pancreas"
 print(celltype)
 
@@ -157,15 +162,53 @@ snp_mart <- useEnsembl(
 )
 
 
+annot_all = fread(paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/LDSC/data/GRCh38/baselineLD_v2.2/baselineLD.", chrid, ".annot.gz"))
 
 cats = c("SNP", "Promoter_UCSC", "Enhancer_Hoffman", "Coding_UCSC", "TFBS_ENCODE")
 if(type == 1){
   cats = c("SNP", "Promoter_UCSC", "Enhancer_Hoffman", "TFBS_ENCODE")
+}else if(type == 2){
+  cats <- c(
+    "SNP",
+    # QTL
+    "GTEx_eQTL_MaxCPP",
+    "BLUEPRINT_H3K27acQTL_MaxCPP",
+    "BLUEPRINT_H3K4me1QTL_MaxCPP",
+    "BLUEPRINT_DNA_methylation_MaxCPP",
+    
+    # Promoter / TSS
+    "Promoter_UCSC",
+    "TSS_Hoffman",
+    "PromoterFlanking_Hoffman",
+    "Human_Promoter_Villar",
+    "Ancient_Sequence_Age_Human_Promoter",
+    "Human_Promoter_Villar_ExAC",
+    
+    # Enhancer / TFBS
+    "Enhancer_Andersson",
+    "Enhancer_Hoffman",
+    "SuperEnhancer_Hnisz",
+    "WeakEnhancer_Hoffman",
+    "TFBS_ENCODE",
+    "Human_Enhancer_Villar",
+    "Ancient_Sequence_Age_Human_Enhancer",
+    
+    # Histone marks
+    "H3K27ac_Hnisz",
+    "H3K27ac_PGC2",
+    "H3K4me1_peaks_Trynka",
+    "H3K4me1_Trynka",
+    "H3K4me3_peaks_Trynka",
+    "H3K4me3_Trynka",
+    "H3K9ac_peaks_Trynka",
+    "H3K9ac_Trynka"
+  )
+}else if(type == 3){
+  cats <- colnames(annot_all)[c(-1, -2, -4, -5)]
 }
 # cats = c("SNP","Coding_UCSC", "TSS_Hoffman", "Enhancer_Hoffman", 
 #          "Promoter_UCSC", "H3K27ac_Hnisz", "H3K4me1_peaks_Trynka")
 # annot = fread(paste0("/gpfs/gibbs/pi/zhao/cl2384/MESC_Genes/baselineLD_2.1/baselineLD.", chrid, ".annot.gz"))
-annot_all = fread(paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/LDSC/data/GRCh38/baselineLD_v2.2/baselineLD.", chrid, ".annot.gz"))
 annot_all = annot_all[, ..cats]
 
 ######################################################################################
@@ -201,9 +244,9 @@ gene_i = 1
 
 
 
-path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GTEx/result_new_500k_enhancer/chr_", chrid, "_ct_", celltype, "_type_", type, ".RData")
+# path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GTEx/result_new_500k_enhancer/chr_", chrid, "_ct_", celltype, "_type_", type, ".RData")
 all_result <- list()
-save(all_result, file = path)
+# save(all_result, file = path)
 
 for(gene_i in 1:nrow(risk_gene)){
   
@@ -469,11 +512,11 @@ for(gene_i in 1:nrow(risk_gene)){
   #                     annot = annot0,
   #                     R = R,
   #                     gene_info = gene_info)
-  
-  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GTEx/result_new_500k_enhancer/chr_", chrid, "_ct_", celltype, "_type_", type, ".RData")
-  
-  load(path)
   all_result <- append(all_result, list(final_result))
-  save(all_result, file = path)
+  
 }
+
+path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GTEx/result_new_500k_enhancer/chr_", chrid, "_ct_", celltype, "_type_", type, ".RData")
+save(all_result, file = path)
+
 

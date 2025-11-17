@@ -76,22 +76,22 @@ weight_standardized <- function(lam, R){
 
 
 
-power_cal <- function(index_result, index_true){
-  if(length(index_result) == 0){
-    return(0)
-  }
-  index_common <- intersect(index_result, index_true)
-  return(length(index_common)/max(length(index_true), 1))
-}
-
-
-fdr_cal <- function(index_result, index_true){
-  if(length(index_result) == 0){
-    return(NA)
-  }
-  index_common <- intersect(index_result, index_true)
-  return(1-length(index_common)/max(length(index_result), 1))
-}
+# power_cal <- function(index_result, index_true){
+#   if(length(index_result) == 0){
+#     return(0)
+#   }
+#   index_common <- intersect(index_result, index_true)
+#   return(length(index_common)/max(length(index_true), 1))
+# }
+# 
+# 
+# fdr_cal <- function(index_result, index_true){
+#   if(length(index_result) == 0){
+#     return(0)
+#   }
+#   index_common <- intersect(index_result, index_true)
+#   return(1-length(index_common)/max(length(index_result), 1))
+# }
 
 
 ################ GK-simple

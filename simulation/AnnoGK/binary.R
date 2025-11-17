@@ -1,4 +1,6 @@
 
+
+
 args = commandArgs(trailingOnly=TRUE)
 options(stringsAsFactors=F)
 args <- as.numeric(args)
@@ -134,7 +136,8 @@ for (heri in c(0.05, 0.1, 0.2)){
     
     
     ############### 2. AnnoKn-simple
-    z <-1:p
+    z <- numeric(p)
+    z[1:60] = 1
     R <- scale(as.matrix(z))
     
     start <- Sys.time()
@@ -161,8 +164,9 @@ for (heri in c(0.05, 0.1, 0.2)){
     start <- Sys.time()
     set.seed(seed)
     result = knockoff_anno_improved(X = X, Xk = X_tilde, y = y, R = R)
-    end <- Sys.time()
     beta = result$beta
+    
+    end <- Sys.time()
     time3 <- as.numeric(difftime(end, start, units = "secs")) + time1_check1
     
     
@@ -249,7 +253,7 @@ for (heri in c(0.05, 0.1, 0.2)){
     ############# 6. AnnoGK
     start <- Sys.time()
     set.seed(seed)
-    GK1ps_anno = GK_anno_M(Z, R, M, LD, N.effect)
+    GK1ps_anno = GK_anno_M(Z, R, M = 1, LD, N.effect)
     
     
     beta <- GK1ps_anno$beta_final
@@ -453,8 +457,8 @@ for (heri in c(0.05, 0.1, 0.2)){
                   h2e = h2e
     )
     
-    path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/ghostknockoff/simulation/AnnoGK_simu/result/heri_final_10_",heri,"_n_",N.effect,"_p_",p, "_", i,".RData")
-    # path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/ghostknockoff/simulation/AnnoGK_simu/result/heri_final_10_weak_",heri,"_n_",N.effect,"_p_",p, "_", i,".RData")
+    path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/ghostknockoff/simulation/AnnoGK_simu/result/heri_final_10_binary_",heri,"_n_",N.effect,"_p_",p, "_", i,".RData")
+    # path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/ghostknockoff/simulation/AnnoGK_simu/result/heri_final_10_weak_binary_",heri,"_n_",N.effect,"_p_",p, "_", i,".RData")
     
     dir <- dirname(path)
     if (!dir.exists(dir)) {

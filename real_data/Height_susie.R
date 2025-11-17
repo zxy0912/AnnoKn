@@ -1,4 +1,6 @@
 
+
+
 args = commandArgs(trailingOnly=TRUE)
 options(stringsAsFactors=F)
 
@@ -70,8 +72,8 @@ M = 1
 seed = 12345
 
 
-for(M in c(1,3)){
-  for(seed in c(1000)){
+for(M in c(5)){
+  for(seed in c(12345)){
     sums_chr = sum_s[sum_s$Chromsome == chrid,]
     sums_chr <- sums_chr[order(sums_chr$Position),]
     
@@ -213,6 +215,12 @@ for(M in c(1,3)){
       print(lambda)
       
       
+      ############################# susie
+      
+      susie_result <- susie_rss(z = z_scores, R = R, n = nsample,
+                                L = 20, coverage = 0.9, min_abs_corr = 0.5)
+      
+      
       
       ################### perform variable selection
       
@@ -283,10 +291,6 @@ for(M in c(1,3)){
       q_gk <- append(q_gk, list(a))
       
       
-      ############################# ghostknockoff
-      
-      susie_result <- susie_rss(z = z_scores_final, R = LD, n = nsample,
-                L = 20, coverage = 0.9, min_abs_corr = 0.5)
       
       
       ############################# GK-anno
@@ -334,9 +338,8 @@ for(M in c(1,3)){
                    lambda_s = lambda_s)
     
     other = paste(ancestry1, collapse = "_")
-    # path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/Height/annot_pvalus/result/", ancestry0, "_result_dss_", other, "_chr_",chrid, "_M_", M, "_", seed, ".RData")
-    path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/Height/annot_pvalus/result/", ancestry0, "_result_final_10_median_r2_", other, "_chr_",chrid, "_M_", M, "_", seed, ".RData")
-    save(result, file = path)
+    # path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/Height/annot_pvalus/result/", ancestry0, "_result_final_10_median_r2_", other, "_chr_",chrid, "_M_", M, "_", seed, ".RData")
+    # save(result, file = path)
     
   }
 }

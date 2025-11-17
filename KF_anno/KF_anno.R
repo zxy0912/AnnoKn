@@ -105,7 +105,8 @@ power_cal <- function(index_result, index_true){
 
 fdr_cal <- function(index_result, index_true){
   if(length(index_result) == 0){
-    return(NA)
+    # return(NA)
+    return(0)
   }
   index_common <- intersect(index_result, index_true)
   return(1-length(index_common)/max(length(index_result), 1))
@@ -116,8 +117,6 @@ fdr_cal <- function(index_result, index_true){
 
 knockoff_anno_improved <- function(X, Xk, y, lams = NULL, attempts = NULL, R){
   # knockoff_anno want to improve the efficiency.
-  
-  
   
   ##### adjust the situation when R is all NAs
   var_para <- apply(R, 2, var)
@@ -225,7 +224,8 @@ knockoff_anno_improved <- function(X, Xk, y, lams = NULL, attempts = NULL, R){
        cv_error = cv_list_mse, # cv error for each lamdba_0 in A
        obj_fun_all = obj_fun_all,
        att_which = att_which,
-       lambda_s =lambda_s_final) # target parameter
+       lambda_s =lambda_s_final,
+       R = R) # target parameter
   
 }
 
@@ -333,6 +333,27 @@ cv_mse <- function(X, y, lambda, nfolds = 5, family = "gaussian", Prior = Prior)
 
 
 knockoff_simple = function(X, Xk, y, R) {
+  
+  var_para <- apply(R, 2, var)
+  
+  if(all(is.na(R)) | sum(var_para!=0) == 0){
+    print("no informative annotations")
+    p = ncol(X)
+    mdl = cv.glmnet(cbind(X, Xk), y, alpha=1)
+    cvlambda = mdl$lambda.min
+    beta = mdl$glmnet.fit$beta[, mdl$lambda == cvlambda]
+    
+    return(list(beta = beta, 
+                objs = NA, 
+                lambda_s = rep(0, ncol(R)),
+                Prior = rep(0, 2*p)))
+  }
+  
+  R <- R[, var_para!=0]
+  R = scale(R)
+  #####
+  
+  
   
   X = scale(X)
   Xk = scale(Xk)
