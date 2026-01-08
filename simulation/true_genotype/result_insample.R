@@ -367,9 +367,9 @@ g <- g + geom_line(
   data = fdr_data,
   aes(x = q_value, y = q_value),
   inherit.aes = FALSE,
-  linetype = "dashed",
+  linetype = "solid",
   color = "black",
-  linewidth = 0.3
+  linewidth = 1
 )
 
 #g <- g + geom_blank(

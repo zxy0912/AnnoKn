@@ -20,14 +20,19 @@ df <- data.frame(Chromosome = factor(chr), Count = s)
 
 library(ggplot2)
 
-ggplot(df, aes(x = Chromosome, y = Count)) +
+g <- ggplot(df, aes(x = Chromosome, y = Count)) +
   geom_bar(stat = "identity", fill = "steelblue") +
-  theme_minimal(base_size = 14) +
+  theme_minimal(base_size = 12) +
   labs(
-    title = "Number of Risk Regions per Chromosome",
+    title = "",
     x = "Chromosome",
-    y = "Risk Region Count"
+    y = "Region Count"
   )
+
+ggsave("/gpfs/gibbs/pi/zhao/xz527/annoKn_plots/annoGk/Height_risk_region.pdf", 
+       g, 
+       width = 7, height = 4, units = "in", 
+       bg = "white", device = cairo_pdf)
 
 ########################
 
@@ -45,6 +50,12 @@ chrid = '5'
 M = 1
 seed = '1000'
 # seed = '12345' for dss
+
+number_gk_eur <- 0
+number_annogk_eur <- 0
+
+number_gk_afr <- 0
+number_annogk_afr <- 0
 
 
 chrlist = (1:22)
@@ -68,11 +79,13 @@ for(chrid in chrlist){
     # print(i)
     a = q_gk[[i]]
     if(sum(a <= threshold) > 0){
+      number_gk_eur <- number_gk_eur + sum(a <= threshold)
       region_1 <- rbind(region_1, as.numeric(append(chrid, result$risk_region[[i]])))
     }
     b = q_gkanno[[i]]
     # print(which(b <= threshold))
     if(sum(b <= threshold) > 0){
+      number_annogk_eur <- number_annogk_eur + sum(b <= threshold)
       region_anno_1 <- rbind(region_anno_1, as.numeric(append(chrid, result$risk_region[[i]])))
       lambdas1 <- append(lambdas1, result$lambda_s[[i]])
     }
@@ -96,11 +109,13 @@ for(chrid in chrlist){
     # print(i)
     a = q_gk[[i]]
     if(sum(a <= threshold) > 0){
+      number_gk_afr <- number_gk_afr + sum(a <= threshold)
       region_2 <- rbind(region_2, as.numeric(append(chrid, result$risk_region[[i]])))
     }
     b = q_gkanno[[i]]
     # print(which(b <= threshold))
     if(sum(b <= threshold) > 0){
+      number_annogk_afr <- number_annogk_afr + sum(b <= threshold)
       region_anno_2 <- rbind(region_anno_2, as.numeric(append(chrid, result$risk_region[[i]])))
       lambdas2 <- append(lambdas2, result$lambda_s[[i]])
     }
@@ -144,7 +159,7 @@ histogram_plot <- ggplot(df, aes(x = lambdas)) +
     alpha = 0.8     
   ) +
   labs(
-    title = expression("Distribution of " * lambda[l] * " of AFR p-values for EUR GWAS"),
+    title = "",#expression("Distribution of " * lambda[l] * " of AFR p-values for EUR GWAS"),
     x = expression(lambda[l]),         
     y = "Frequency (Count)"         
   ) +
@@ -155,6 +170,10 @@ histogram_plot <- ggplot(df, aes(x = lambdas)) +
   )
 histogram_plot
 
+ggsave("/gpfs/gibbs/pi/zhao/xz527/annoKn_plots/annoGk/Height_lambda.pdf", 
+       histogram_plot, 
+       width = 8, height = 5, units = "in", 
+       bg = "white", device = cairo_pdf)
 
 
 df <- data.frame(lambdas = lambdas2)
@@ -183,14 +202,19 @@ histogram_plot
 library(VennDiagram)
 library(grid)
 
-df1 <- as.data.frame(region_2)
-df2 <- as.data.frame(region_anno_2)
+df1 <- as.data.frame(region_1)
+df2 <- as.data.frame(region_anno_1)
 set1 <- apply(df1, 1, paste, collapse = "_")
 set2 <- apply(df2, 1, paste, collapse = "_")
 
 n1 <- length(set1)
 n2 <- length(set2)
 n_common <- length(intersect(set1, set2))
+
+
+pdf("/gpfs/gibbs/pi/zhao/xz527/annoKn_plots/annoGk/Height_eur_venn.pdf",
+    width = 5.5, height = 5)
+
 
 venn.plot <- draw.pairwise.venn(
   area1 = n1,
@@ -206,12 +230,61 @@ venn.plot <- draw.pairwise.venn(
   cat.dist = 0.05
 )
 
-grid.newpage()
-grid.draw(venn.plot)
+# grid.newpage()
+# grid.draw(venn.plot)
 
-grid.text(
-  "Risk regions identified by GhostKnockoff and AnnoGK in African",
-  x = 0.5, y = 0.98,          
-  gp = gpar(fontsize = 16, fontface = "bold")  
+# grid.text(
+#   "Risk regions identified by GhostKnockoff and AnnoGK in European",
+#  x = 0.5, y = 0.98,          
+#  gp = gpar(fontsize = 16, fontface = "bold")  
+# )
+
+dev.off()
+
+
+
+
+################# For AFR
+
+
+library(VennDiagram)
+library(grid)
+
+df1 <- as.data.frame(region_2)
+df2 <- as.data.frame(region_anno_2)
+set1 <- apply(df1, 1, paste, collapse = "_")
+set2 <- apply(df2, 1, paste, collapse = "_")
+
+n1 <- length(set1)
+n2 <- length(set2)
+n_common <- length(intersect(set1, set2))
+
+
+pdf("/gpfs/gibbs/pi/zhao/xz527/annoKn_plots/annoGk/Height_afr_venn.pdf",
+    width = 5.5, height = 5)
+
+
+venn.plot <- draw.pairwise.venn(
+  area1 = n1,
+  area2 = n2,
+  cross.area = n_common,
+  category = c("GhostKnockoff", "AnnoGK"),
+  fill = c("steelblue", "orange"),
+  
+  alpha = c(0.6, 0.6),
+  cex = 1.5,
+  cat.cex = 1.3,
+  cat.pos = c(-20, 20),
+  cat.dist = 0.05
 )
 
+# grid.newpage()
+# grid.draw(venn.plot)
+
+# grid.text(
+#   "Risk regions identified by GhostKnockoff and AnnoGK in European",
+#  x = 0.5, y = 0.98,          
+#  gp = gpar(fontsize = 16, fontface = "bold")  
+# )
+
+dev.off()

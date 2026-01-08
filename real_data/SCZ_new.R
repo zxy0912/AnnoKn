@@ -29,8 +29,8 @@ bedNA <- function(bed1){
 
 
 ################ load the summary statistics
-ancestry0 = 'EAS'
-ancestry1 = c('EUR',"AFR","LAT")
+ancestry0 = 'EUR'
+ancestry1 = c('EAS',"AFR","LAT")
 
 
 ancestry = ancestry0
@@ -225,10 +225,10 @@ for(M in c(1,3)){
       
       # d <- as.dist(1 - R)  # higher distance = lower correlation
       R2 <- R^2
-      d <- as.dist(1 - R2) # cluster SNPs with r² > 0.5
+      d <- as.dist(1 - R2) # cluster SNPs with r² > 0.25
       hc <- hclust(d, method = "average")
       hc <- as.dendrogram(hc)
-      clusters <- cutree(hc, h = 0.75)  # e.g., cluster SNPs with r² > 0.5
+      clusters <- cutree(hc, h = 0.75)  # e.g., cluster SNPs with r² > 0.25
       length(table(clusters))
       mean(table(clusters)) # average size for each cluster
       

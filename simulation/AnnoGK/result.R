@@ -180,11 +180,18 @@ p1 <- ggplot(plot_data, aes(x = alpha, y = power, color = method, shape = method
 p2 <- ggplot(plot_data, aes(x = alpha, y = fdr, color = method, shape = method)) +
   geom_line() +
   geom_point() +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "black") +
+  # geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "black") +
+  geom_segment(
+    aes(x = 0.1, y = 0.1, xend = 0.4, yend = 0.4), 
+    linetype = "solid", 
+    color = "black", 
+    linewidth = 1
+  ) +
   labs(x = "Target FDR", y = "FDR") +
   scale_color_manual(values = colors, breaks = methods) +
   scale_shape_manual(values = shapes, breaks = methods) +
-  theme_minimal()
+  theme_minimal() +
+  coord_cartesian(xlim = c(0.1, 0.4), ylim = c(0, 0.4))
 
 library(gridExtra)
 grid.arrange(p1, p2, ncol = 2)
@@ -287,39 +294,12 @@ colors <- c("Knockoff" = "#e6ab02",
             "AnnoGK-lite" = "#D55E00")
 
 
-# colors <- c('Adapt' = '#1b9e77', 
-#             'Knockoff' = '#e6ab02', 
-#             'AdaKn (GLM)' = '#d95f02', 
-#             'AdaKn (GAM)' = '#00BFC4', 
-#             'AdaKn (RF)' = '#e7298a',
-#             'AdaKn (EM)' = '#C77CFF',
-#             'AnnoKn' = '#F8766D', 
-#             'AnnoKn-lite' = '#619CFF')
-
-# shapes <- c('Adapt' = 11,
-#             "Knockoff" = 16,
-#             'AdaKn (GLM)' = 12,
-#             'AdaKn (GAM)' = 13,
-#             'AdaKn (RF)' = 17,
-#             'AdaKn (EM)' = 7,
-#             "AnnoKn" = 8,
-#             "AnnoKn-lite" = 5)
-
 shapes <- c("Knockoff" = 16,
             "AnnoKn" = 8,
             "GhostKnockoff" = 15,
             "AnnoGK" = 3,
             "AnnoKn-lite" = 5,
             "AnnoGK-lite" = 4)
-
-# linetypes <- c('Adapt' = "82",
-#                "Knockoff" = "solid",
-#                'AdaKn (GLM)' = "41",
-#                'AdaKn (GAM)' = "14",
-#                "AdaKn (RF)" = "22",
-#                'AdaKn (EM)' = "81",
-#                "AnnoKn" = "dashed",
-#                "AnnoKn-lite" = "dotted")
 
 linetypes <- c("Knockoff" = "solid",
                "AnnoKn" = "dashed",
@@ -356,9 +336,9 @@ g <- g + geom_line(
   data = fdr_data,
   aes(x = alpha, y = alpha),
   inherit.aes = FALSE,
-  linetype = "dashed",
+  linetype = "solid",
   color = "black",
-  linewidth = 0.3
+  linewidth = 1
 )
 
 g <- g + geom_blank(
@@ -396,7 +376,7 @@ box(bty = "n")
 
 
 
-p = 1000
+p = 300
 
 
 library(ggplot2)
@@ -548,9 +528,9 @@ g <- g + geom_line(
   data = fdr_data,
   aes(x = alpha, y = alpha),
   inherit.aes = FALSE,
-  linetype = "dashed",
+  linetype = "solid",
   color = "black",
-  linewidth = 0.3
+  linewidth = 1
 )
 
 g <- g + geom_blank(
@@ -560,10 +540,117 @@ g <- g + geom_blank(
 
 print(g)
 
-ggsave("/gpfs/gibbs/pi/zhao/xz527/annoKn_plots/AnnoGK_simu_strong_binary_p1000.pdf", 
+ggsave("/gpfs/gibbs/pi/zhao/xz527/annoKn_plots/AnnoGK_simu_strong_binary_p300.pdf", 
        g, 
        width = 9, height = 5, units = "in", 
        bg = "white", device = cairo_pdf)
+
+
+
+
+
+
+######################### running time
+
+
+p = 1000
+
+
+library(ggplot2)
+library(dplyr)
+
+iteration = 100
+alphalist <- seq(0.4, 0.1, by = -0.05)
+len = length(alphalist)
+
+
+all_plot_data <- data.frame()
+
+h = 0.1
+
+removelist <- c()
+time1 <- time2 <- time3 <- time4 <- time5 <- time6 <- numeric()
+time7 <- time8 <- time9 <- time10 <- time11 <- numeric()
+
+for (i in 1:iteration) {
+  path <- paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/ghostknockoff/simulation/AnnoGK_simu/result/heri_final_10_",
+                 h, "_n_", 5000, "_p_", p, "_", i, ".RData")
+  if (!file.exists(path)) {
+    removelist <- c(removelist, i)
+    next
+  }
+  load(path)
+  
+  time1 <- append(time1, result$time1)
+  time2 <- append(time2, result$time2)
+  time3 <- append(time3, result$time3)
+  time4 <- append(time4, result$time4)
+  time5 <- append(time5, result$time5)
+  time6 <- append(time6, result$time6)
+  time7 <- append(time7, result$time7)
+  time8 <- append(time8, result$time8)
+  time9 <- append(time9, result$time9)
+  time10 <- append(time10, result$time10)
+  time11 <- append(time11, result$time11)
+}
+
+
+name_method <- c('Knockoff', 
+                 'AnnoKn-lite', 
+                 'AnnoKn', 
+                 'GhostKnockoff', 
+                 'AnnoGK-lite',
+                 'AnnoGK',
+                 'AnnoGK-dss', 
+                 'GhostKnockoff M=5', 
+                 'AnnoGK-simple M=5',
+                 'AnnoGK M=5', 
+                 'AnnoGK-dss M=5')
+
+methods <- c("Knockoff", "AnnoKn", "GhostKnockoff",
+             "AnnoGK")
+
+df <- data.frame(
+  time = c(time1, time2, time3, time4, time5, time6, time7, time8, time9, time10, time11),
+  method = factor(rep(name_method, each = 100), levels = name_method)
+)
+
+tmp_df <- df[df$method %in% methods, ]
+
+
+colors <- c("Knockoff" = "#e6ab02",
+            "AnnoKn" = "#F8766D",
+            "GhostKnockoff" = "#7570b3",
+            "AnnoGK" = "#4DAF4A",
+            "AnnoKn-lite" = "#619CFF",
+            "AnnoGK-lite" = "#D55E00")
+
+g <- ggplot(tmp_df, aes(x = method, y = time, fill = method)) +
+  geom_boxplot(outlier.size = 1.2) +
+  scale_fill_manual(values = colors) +
+  scale_y_continuous(
+    name = "Time (seconds)", 
+    labels = function(x) paste0(x, " s")
+  ) +
+  labs(x = "Method") +
+  theme_bw(base_size = 14) +
+  theme(
+    # axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "none"
+  )
+
+g
+
+
+ggsave("/gpfs/gibbs/pi/zhao/xz527/annoKn_plots/AnnoGK_simu_time_h0.1_p1000.pdf", 
+       g, 
+       width = 8, height = 5, units = "in", 
+       bg = "white", device = cairo_pdf)
+
+
+
+
+
 
 
 

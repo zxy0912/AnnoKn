@@ -23,7 +23,11 @@ obj_fun_old <- function(lam, lambda_0, beta, R, n, d = 20){
   
   eta <- as.vector(R %*% lam) / d
   max_eta = max(eta)
-  w = exp(eta-max_eta) * p / (sum(exp(eta-max_eta)))
+  w = exp(eta-max_eta) * p / (sum(exp(eta-max_eta))) #这个地方还是采用了归一化的形式，是为了计算上的稳定
+  # 原因：若eta值很小（一般情况下足够大的d可以让这个条件满足），因此计算结果在数值上可以逼近非归一化的结果，因为sum(exp(eta))约等于p
+  # 但若eta出现波动，softmax的结构可以保证计算的稳定性，也就是让计算永远不溢出
+  # 理论层: 使用 不归一化 的目标函数，避免保守估计，最大化利用信息，同时求解更加高效且稳定
+  # 代码层: 利用 大d + Softmax结构，既实现了非归一化的数值逼近，又获得了归一化带来的数值稳定性
   w <- w * lambda_0
   combined_beta <- abs(beta[1:p]) + abs(beta[(p+1):(2*p)])
   

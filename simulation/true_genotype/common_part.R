@@ -156,7 +156,7 @@ snp_number <- data.frame(index = 1:length(snps),
                          snps = snps,
                          snp_clusters = snp_clusters)
 write.table(snp_number, 
-            "/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/UKBB/EUR_0.05maf/real_simulation/region_information/chr1_common_5MB.txt",
+            "/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/UKBB/EUR_0.05maf/real_simulation/region_information/chr1_common_2MB.txt",
             quote = FALSE, col.names = FALSE, row.names = FALSE)
 
 

@@ -128,7 +128,7 @@ write.table(sum_s, file = path, sep = "\t", row.names = FALSE, col.names = TRUE,
 
 
 ########### make the manhatten plot
-ancestry = 'LAT'
+ancestry = 'EUR'
 
 path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GK_anno/SCZ/", ancestry, "_summ.tsv") 
 sum_s <- read.table(path, sep="\t", header=TRUE, stringsAsFactors = FALSE)
@@ -140,7 +140,7 @@ sum_s <- sum_s[sum_s$PVAL<0.001,]
 
 library("qqman")
 
-p <- manhattan(sum_s, chr = "CHROM", bp = "POS", p = "PVAL", snp = "ID", main=paste("Manhattan plot for", ancestry, "ancestry"), 
+p <- manhattan(sum_s, chr = "CHROM", bp = "POS", p = "PVAL", snp = "ID", main="", #paste("Manhattan plot for", ancestry, "ancestry"), 
                col = c("red4","red","orange","gold","darkgreen","forestgreen","yellowgreen","darkcyan","darkblue","royalblue1", "blue","dodgerblue","deepskyblue","skyblue1","purple4","darkmagenta","violetred","hotpink","palevioletred","lightpink","chocolate4","lightgray","gray28"), 
                ylim=c(0,42),chrlabs = NULL,suggestiveline = -log10(5e-06), genomewideline = -log10(5e-08),highlight = NULL, 
                logp = TRUE, annotatePval = NULL, annotateTop = TRUE)
@@ -150,4 +150,130 @@ p
 
 
 
+
+
+
+
+
+
+########## check the number of risk regions:
+
+
+
+
+source("/home/xz527/Rcode/knockoff_anno/KF_anno/KF_anno.R")
+source("/home/xz527/Rcode/knockoff_anno/GK_anno/GK_anno.R")
+source("/home/xz527/Rcode/knockoff_anno/GK_anno/GhostKnockoff.R")
+packageVersion("Matrix") 
+
+
+library(tidyr)
+library(dplyr)
+library(genio)
+library(bigstatsr)
+library(dendextend)
+
+bedNA <- function(bed1){
+  for(j in 1:ncol(bed1)){
+    temp <- bed1[,j]
+    temp[is.na(temp)] <- mean(temp,na.rm = TRUE)
+    bed1[,j] <- temp
+    #print(j)
+  }
+  return(bed1)
+}
+
+
+################ load the summary statistics
+ancestry0 = 'EUR'
+ancestry1 = c('EAS',"AFR","LAT")
+
+
+ancestry = ancestry0
+path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GK_anno/SCZ/", ancestry, "_summ.tsv")
+sum_s <- read.table(path, sep="\t", header=TRUE, stringsAsFactors = FALSE)
+# we also checked that all SNPs are in (A,T,G,C)
+colnames(sum_s) <- c("Chromsome","SNPID", "Position", "EffectAllele", "NonEffectAllele", "NonEffectAF_case", 
+                     "NonEffectAF_control", "INFO", "Beta", "SE","Pval","N_case","N_control","Neff")
+sum_s[[ancestry]] <- sum_s$Pval
+print(length(unique(sum_s$SNPID)) == nrow(sum_s))
+
+# ,'HIS','SAS','EAS','AFA'
+for(ancestry in ancestry1){
+  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GK_anno/SCZ/", ancestry, "_summ.tsv")
+  temp <- read.table(path, sep="\t", header=TRUE, stringsAsFactors = FALSE)
+  colnames(temp) <- c("Chromsome","SNPID", "Position", "EffectAllele", "NonEffectAllele", "NonEffectAF_case", 
+                      "NonEffectAF_control", "INFO", "Beta", "SE","Pval","N_case","N_control","Neff")
+  
+  message(ancestry, ": unique SNP? ", length(unique(temp$SNPID)) == nrow(temp))
+  index <- match(sum_s$SNP, temp$SNP)
+  print(table(is.na(index)))
+  print(table(temp$SNP[index] == sum_s$SNP))
+  message(ancestry, ": matched = ", sum(!is.na(index)), "/", length(index))
+  sum_s[[ancestry]] <- temp$Pval[index]
+}
+
+
+
+number_all <- numeric()
+risk_region_all1 <- c()
+
+for(chrid in 1:22){
+  
+  print(paste("chr:", chrid))
+  
+  sums_chr = sum_s[sum_s$Chromsome == chrid,]
+  sums_chr <- sums_chr[order(sums_chr$Position),]
+  
+  ################ load the reference panel from 1KG
+  
+  # ancestry = 'EUR'
+  if(ancestry0 == 'EUR'){
+    path <- paste("/gpfs/gibbs/pi/zhao/xz527/TWAS_fm/simu_sep/1000G/AFR/bychr_", ancestry0, "/1KG_chr", chrid,sep='')
+  }else if(ancestry0 == 'EAS'){
+    path <- paste("/gpfs/gibbs/pi/zhao/xz527/TWAS_fm/simu_sep/1000G/EAS/bychr_", ancestry0, "/1KG_chr", chrid,sep='')
+  }
+  ref_chr <- read_plink(path)
+  
+  ############### find the common part of three datasets:
+  
+  common_id <- intersect(ref_chr$bim$pos, sums_chr$Position)
+  index1 = match(common_id, ref_chr$bim$pos)
+  index2 = match(common_id, sums_chr$Position)
+  
+  bim = ref_chr$bim[index1, ]
+  X = ref_chr$X[index1, ]
+  table(rownames(X) == bim$id)
+  sums_chr = sums_chr[index2, ]
+  table(bim$pos == sums_chr$Position)
+  
+  
+  ################### define risk regions
+  
+  len_half = 250000
+  # risk_id <- which(sums_chr$Pval < 5 * 10^-8)
+  risk_id <- which(sums_chr$EUR < 5 * 10^-8)
+  pos_id = unlist(sums_chr$Position[risk_id])
+  pos_diff <- diff(pos_id)
+  where_sep = as.numeric(c(0, which(pos_diff > 2 * len_half)))
+  risk_region = numeric()
+  
+  
+  if(length(where_sep) > 1){
+    for(i in 1:(length(where_sep)-1)){
+      risk_region <- rbind(risk_region, c(pos_id[where_sep[i] + 1] - len_half, pos_id[where_sep[i+1]] + len_half))
+    }
+    risk_region <- rbind(risk_region, c(pos_id[where_sep[length(where_sep)] + 1] - len_half, pos_id[length(pos_id)] + len_half))
+  }else if(length(where_sep) == 1){
+    risk_region <- rbind(risk_region, c(pos_id[where_sep[length(where_sep)] + 1] - len_half, pos_id[length(pos_id)] + len_half))
+  }
+  
+  print(risk_region)
+  risk_region <- as.data.frame(risk_region)
+  
+  if(ncol(risk_region) > 1){
+    risk_region$chr = chrid
+    risk_region_all1 <- rbind(risk_region_all1, risk_region)
+  }
+}
 

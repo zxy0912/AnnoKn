@@ -67,8 +67,8 @@ library(dplyr)
 
 iteration = 100
 alphalist <- seq(0.3,0.05,-0.05)
-amp = 30
-binary = 'binary'
+amp = 25
+binary = ''
 type_all = c(1, 0.5, 2, 'in')
 
 len = length(alphalist)
@@ -201,9 +201,9 @@ g <- g + geom_line(
   data = fdr_data,
   aes(x = alpha, y = alpha),
   inherit.aes = FALSE,
-  linetype = "dashed",
+  linetype = "solid",
   color = "black",
-  linewidth = 0.3
+  linewidth = 1
 )
 
 g <- g + geom_blank(
@@ -215,13 +215,109 @@ print(g)
 
 
 
-ggsave("/gpfs/gibbs/pi/zhao/xz527/annoKn_plots/AnnoKn_2dim_binary.pdf", 
+ggsave("/gpfs/gibbs/pi/zhao/xz527/annoKn_plots/AnnoKn_2dim_continuous.pdf", 
        g, 
        width = 10, height = 5, units = "in", 
        bg = "white", device = cairo_pdf)
 
 
 
+
+################## running time:
+
+
+
+
+
+library(ggplot2)
+library(dplyr)
+
+iteration = 100
+alphalist <- seq(0.3,0.05,-0.05)
+amp = 25
+binary = ''
+type = 1
+
+
+time1 <- time2 <- time3 <- time4 <- time5 <- time6 <- time7 <- numeric()
+
+
+removelist <- c()
+
+for (i in 1:iteration) {
+  path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/knockoff/simulation/2dimen/result/result_", 
+                binary, "_amp_",amp, "_type_", type, "_", i,".RData")
+  
+  if (!file.exists(path)) {
+    removelist <- c(removelist, i)
+    next
+  }
+  load(path)
+  
+  time1 <- append(time1, result$time1)
+  time2 <- append(time2, result$time2)
+  time3 <- append(time3, result$time3)
+  time4 <- append(time4, result$time4)
+  time5 <- append(time5, result$time5)
+  time6 <- append(time6, result$time6)
+  time7 <- append(time7, result$time7)
+}
+
+
+name_method <- c('Knockoff', 
+                 'AdaKn (GLM)', 
+                 'AdaKn (GAM)', 
+                 'AdaKn (RF)', 
+                 'AdaKn (EM)',
+                 'AnnoKn',
+                 'AnnoKn-lite')
+
+methods <- c('Knockoff', 
+             # 'AdaKn (GLM)', 
+             # 'AdaKn (GAM)', 
+             'AdaKn (RF)', 
+             'AdaKn (EM)',
+             'AnnoKn',
+             'AnnoKn-lite')
+
+df <- data.frame(
+  time = c(time1, time2, time3, time4, time5, time6, time7),
+  method = factor(rep(name_method, each = 100), levels = name_method)
+)
+
+tmp_df <- df[df$method %in% methods, ]
+
+
+colors <- c('Adapt' = '#1b9e77', 
+            'Knockoff' = '#e6ab02', 
+            'AdaKn (GLM)' = '#d95f02', 
+            'AdaKn (GAM)' = '#00BFC4', 
+            'AdaKn (RF)' = '#e7298a',
+            'AdaKn (EM)' = '#C77CFF',
+            'AnnoKn' = '#F8766D', 
+            'AnnoKn-lite' = '#619CFF')
+
+
+g <- ggplot(tmp_df, aes(x = method, y = time, fill = method)) +
+  geom_boxplot(outlier.size = 1.2) +
+  scale_fill_manual(values = colors) +
+  scale_y_continuous(
+    name = "Time (seconds)", 
+    labels = function(x) paste0(x, " s")
+  ) +
+  labs(x = "Method") +
+  theme_bw(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "none"
+  )
+
+g
+
+ggsave("/gpfs/gibbs/pi/zhao/xz527/annoKn_plots/AnnoKn_2dim_time_continuous.pdf", 
+       g, 
+       width = 6, height = 5, units = "in", 
+       bg = "white", device = cairo_pdf)
 
 
 

@@ -29,10 +29,10 @@ len = length(alphalist)
 
 print(paste0("######################################### iteration ", i, "  ######################################### "))
 
-seed = 1234 * i
+seed = 1000 * i
 
 n = 1000
-p = 1600 # 30-by-30
+p = 1600 # 40-by-40
 k = 200
 dist_para = 3
 
@@ -320,7 +320,9 @@ for (amp in c(20, 25, 30)){
                     time7 = time7)
       
       
-      path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/knockoff/simulation/2dimen/result/result_", binary, "_amp_",amp, "_type_", type, "_", i,"_1234.RData")
+      path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/knockoff/simulation/2dimen/result/result_", binary, "_amp_",amp, "_type_", type, "_", i,".RData")
+      # path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/knockoff/simulation/2dimen/result/result_", binary, "_amp_",amp, "_type_", type, "_", i,"_1234.RData")
+      # seed = 1234 * i
       
       dir <- dirname(path)
       if (!dir.exists(dir)) {

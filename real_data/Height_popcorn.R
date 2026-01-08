@@ -31,7 +31,7 @@ for(ancestry in ancestry_all){
 
 
 ########### make the manhatten plot
-ancestry = 'EUR'
+ancestry = 'AFR'
 if(ancestry == 'AFR'){
   ancestry0 = 'AA'
 }else{
@@ -40,7 +40,7 @@ if(ancestry == 'AFR'){
 path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/GK_anno/Height/GIANT_HEIGHT_YENGO_2022_GWAS_SUMMARY_STATS_", ancestry0) 
 sum_s <- read.table(path, header = TRUE, sep = '\t')
 
-sum_s <- sum_s[sum_s$P < 0.1, ]
+sum_s <- sum_s[sum_s$P < 0.001, ]
 sum_s <- sum_s[!is.na(sum_s$CHR),]
 # t2d_ss_2024 <- t2d_ss_2024_all[t2d_ss_2024_all$Pval<0.0001,]
 
@@ -49,12 +49,13 @@ sum_s <- sum_s[!is.na(sum_s$CHR),]
 
 library("qqman")
 
-p <- manhattan(sum_s, chr = "CHR", bp = "POS", p = "P", snp = "RSID", main=paste("Manhattan plot for",ancestry,"ancestry"), 
+p <- manhattan(sum_s, chr = "CHR", bp = "POS", p = "P", snp = "RSID", main="", 
                col = c("red4","red","orange","gold","darkgreen","forestgreen","yellowgreen","darkcyan","darkblue","royalblue1", "blue","dodgerblue","deepskyblue","skyblue1","purple4","darkmagenta","violetred","hotpink","palevioletred","lightpink","chocolate4","lightgray","gray28"), 
                ylim=c(0,350),chrlabs = NULL,suggestiveline = -log10(5e-06), genomewideline = -log10(5e-08),highlight = NULL, 
                logp = TRUE, annotatePval = NULL, annotateTop = TRUE)
 
 p
+
 
 
 

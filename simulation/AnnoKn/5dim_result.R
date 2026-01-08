@@ -48,7 +48,7 @@ p = 900
 k = 150
 d = 2
 amp = 3.5
-binary = ''
+binary = 'binary'
 
 for (i in 1:iteration) {
   path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/knockoff/simulation/5dimen/result/result_randomposition_1_p_", num_noise+1, "_",binary, "_amp_",amp, "_", i,".RData")
@@ -233,13 +233,20 @@ p1 <- ggplot(plot_data, aes(x = alpha, y = power, color = method, shape = method
 p2 <- ggplot(plot_data, aes(x = alpha, y = fdr, color = method, shape = method, linetype = method)) +
   geom_line() +
   geom_point() +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "black") +
+  # geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "black") +
+  geom_segment(
+    aes(x = 0.05, y = 0.05, xend = 0.3, yend = 0.3), 
+    linetype = "solid", 
+    color = "black", 
+    linewidth = 1
+  ) +
   labs(x = "Target FDR", y = "FDR") +
   scale_color_manual(values = colors, breaks = methods) +
   scale_shape_manual(values = shapes, breaks = methods) +
   scale_linetype_manual(values = linetypes, breaks = methods) +
   theme_minimal() +
-  theme(legend.position = "none")
+  theme(legend.position = "none") +
+  coord_cartesian(xlim = c(0.05, 0.3), ylim = c(0, 0.3))
 
 library(gridExtra)
 g <- arrangeGrob(p1, p2, my_legend, ncol = 3, widths = c(1, 1, 0.8))
@@ -249,7 +256,8 @@ library(grid)
 grid.newpage()
 grid.draw(g)
 
-ggsave("/gpfs/gibbs/pi/zhao/xz527/annoKn_plots/AnnoKn_5dimen_continuous.pdf", 
+
+ggsave("/gpfs/gibbs/pi/zhao/xz527/annoKn_plots/AnnoKn_5dimen_binary.pdf", 
        g, 
        width = 11, height = 4, units = "in", 
        bg = "white", device = cairo_pdf)

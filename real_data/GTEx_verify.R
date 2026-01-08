@@ -30,7 +30,7 @@ allcelltype = c('Muscle_Skeletal', 'Whole_Blood', "Skin_Sun_Exposed_Lower_leg", 
 
 # 
 
-type = 1
+type = 3
 alpha = 0.1
 pc = 5
 lnc = FALSE
@@ -307,12 +307,12 @@ combined_data$allcelltype <- factor(combined_data$allcelltype, levels = tissue_o
 p <- ggplot(combined_data, aes(x = allcelltype, y = improve_prop, fill = threshold)) +
   
   geom_bar(stat = "identity", position = position_dodge(preserve = "single")) +
-  geom_text(
-    aes(label = round(improve_prop, 3)), 
-    position = position_dodge(width = 0.9), 
-    vjust = -0.4, 
-    size = 3      
-  ) +
+  # geom_text(
+  #  aes(label = round(improve_prop, 3)), 
+  #  position = position_dodge(width = 0.9), 
+  #  vjust = -0.4, 
+  #  size = 3      
+  # ) +
   
   labs(
     x = "Tissue",

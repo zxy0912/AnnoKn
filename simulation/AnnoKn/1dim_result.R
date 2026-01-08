@@ -27,6 +27,8 @@ fdr6 = matrix(0, nrow = iteration, ncol = len)
 fdr7 = matrix(0, nrow = iteration, ncol = len)
 fdr8 = matrix(0, nrow = iteration, ncol = len)
 
+time1 <- time2 <- time3 <- time4 <- time5 <- time6 <- time7 <- time8 <- numeric()
+
 
 s = 0
 removelist = c()
@@ -36,7 +38,7 @@ p = 900
 k = 150
 d = 2
 amp = 3.5
-binary = 'binary'
+binary = ''
 
 for (i in 1:iteration) {
   path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/knockoff/simulation/1dimen/result/result_", binary, "_amp_",amp, "_", i,".RData")
@@ -65,6 +67,15 @@ for (i in 1:iteration) {
   fdr6[i,]   <- result$fdr6
   fdr7[i,]   <- result$fdr7
   fdr8[i,]   <- result$fdr8
+  
+  time1 <- append(time1, result$time1)
+  time2 <- append(time2, result$time2)
+  time3 <- append(time3, result$time3)
+  time4 <- append(time4, result$time4)
+  time5 <- append(time5, result$time5)
+  time6 <- append(time6, result$time6)
+  time7 <- append(time7, result$time7)
+  time8 <- append(time8, result$time8)
   
 }
 
@@ -111,8 +122,17 @@ fdr <- c(
   colMeans(fdr8[1:100,], na.rm = TRUE)
 )
 
+time1 <- time1[1:100]
+time2 <- time2[1:100]
+time3 <- time3[1:100]
+time4 <- time4[1:100]
+time5 <- time5[1:100]
+time6 <- time6[1:100]
+time7 <- time7[1:100]
+time8 <- time8[1:100]
 
-name_method <- c('Adapt', 
+
+name_method <- c('AdaPT', 
                  'Knockoff', 
                  'AdaKn (GLM)', 
                  'AdaKn (GAM)', 
@@ -136,7 +156,7 @@ if(binary == 'binary'){
 }
 
 
-colors <- c('Adapt' = '#1b9e77', 
+colors <- c('AdaPT' = '#1b9e77', 
             'Knockoff' = '#e6ab02', 
             'AdaKn (GLM)' = '#d95f02', 
             'AdaKn (GAM)' = '#00BFC4', 
@@ -145,7 +165,7 @@ colors <- c('Adapt' = '#1b9e77',
             'AnnoKn' = '#F8766D', 
             'AnnoKn-lite' = '#619CFF')
 
-shapes <- c('Adapt' = 11,
+shapes <- c('AdaPT' = 11,
             "Knockoff" = 16,
             'AdaKn (GLM)' = 12,
             'AdaKn (GAM)' = 13,
@@ -154,7 +174,7 @@ shapes <- c('Adapt' = 11,
             "AnnoKn" = 8,
             "AnnoKn-lite" = 5)
 
-linetypes <- c('Adapt' = "82",
+linetypes <- c('AdaPT' = "82",
                "Knockoff" = "solid", # 1
                'AdaKn (GLM)' = "41",
                'AdaKn (GAM)' = "14",
@@ -197,13 +217,20 @@ p1 <- ggplot(plot_data, aes(x = alpha, y = power, color = method, shape = method
 p2 <- ggplot(plot_data, aes(x = alpha, y = fdr, color = method, shape = method, linetype = method)) +
   geom_line() +
   geom_point() +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "black") +
+  #geom_abline(slope = 1, intercept = 0, linetype = "solid", color = "black", linewidth = 1) +
+  geom_segment(
+    aes(x = 0.05, y = 0.05, xend = 0.3, yend = 0.3), 
+    linetype = "solid", 
+    color = "black", 
+    linewidth = 1
+  ) +
   labs(x = "Target FDR", y = "FDR") +
   scale_color_manual(values = colors, breaks = methods) +
   scale_shape_manual(values = shapes, breaks = methods) +
   scale_linetype_manual(values = linetypes, breaks = methods) +
   theme_minimal() +
-  theme(legend.position = "none")
+  theme(legend.position = "none") +
+  coord_cartesian(xlim = c(0.05, 0.3), ylim = c(0, 0.3))
 
 library(gridExtra)
 g <- arrangeGrob(p1, p2, my_legend, ncol = 3, widths = c(1, 1, 0.6))
@@ -213,13 +240,37 @@ library(grid)
 grid.newpage()
 grid.draw(g)
 
-#ggsave("/gpfs/gibbs/pi/zhao/xz527/annoKn_plots/AnnoKn_AdaKn_setting_continuous.pdf", 
-ggsave("/gpfs/gibbs/pi/zhao/xz527/annoKn_plots/AnnoKn_AdaKn_setting_binary.pdf", 
+ggsave("/gpfs/gibbs/pi/zhao/xz527/annoKn_plots/AnnoKn_AdaKn_setting_continuous.pdf", 
+# ggsave("/gpfs/gibbs/pi/zhao/xz527/annoKn_plots/AnnoKn_AdaKn_setting_binary.pdf", 
        g, 
        width = 10, height = 4, units = "in", 
        bg = "white", device = cairo_pdf)
 
 
 
+############# running time:
+df <- data.frame(
+  time = c(time1, time2, time3, time4, time5, time6, time7, time8),
+  method = factor(rep(name_method, each = 100), levels = name_method)
+)
 
+g <- ggplot(df, aes(x = method, y = time, fill = method)) +
+  geom_boxplot(outlier.size = 1.2) +
+  scale_fill_manual(values = colors) +
+  scale_y_continuous(
+    name = "Time (seconds)", 
+    labels = function(x) paste0(x, " s")
+  ) +
+  labs(x = "Method") +
+  theme_bw(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "none"
+  )
 
+g
+
+ggsave("/gpfs/gibbs/pi/zhao/xz527/annoKn_plots/AnnoKn_AdaKn_time_continuous.pdf", 
+       g, 
+       width = 6, height = 5, units = "in", 
+       bg = "white", device = cairo_pdf)

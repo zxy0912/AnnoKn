@@ -4,8 +4,10 @@
 s = numeric()
 
 for(chrid in 1:22){
+  print(paste("chr:", chrid))
   path = paste0("/gpfs/gibbs/pi/zhao/xz527/knockoff_anno/real_data/SCZ/annot_pvalus/risk_region/","EUR","_chr_", chrid,".txt")
   risk_region <- read.table(path)
+  print(risk_region)
   if(any(is.na(risk_region))){
     s = append(s, 0)
     next
@@ -19,14 +21,19 @@ df <- data.frame(Chromosome = factor(chr), Count = s)
 
 library(ggplot2)
 
-ggplot(df, aes(x = Chromosome, y = Count)) +
+g <- ggplot(df, aes(x = Chromosome, y = Count)) +
   geom_bar(stat = "identity", fill = "steelblue") +
-  theme_minimal(base_size = 14) +
+  theme_minimal(base_size = 12) +
   labs(
-    title = "Number of Risk Regions per Chromosome",
+    title = "",
     x = "Chromosome",
-    y = "Risk Region Count"
+    y = "Region Count"
   )
+
+ggsave("/gpfs/gibbs/pi/zhao/xz527/annoKn_plots/annoGk/SCZ_risk_region.pdf", 
+       g, 
+       width = 7, height = 4, units = "in", 
+       bg = "white", device = cairo_pdf)
 
 ########################
 
@@ -190,7 +197,13 @@ find1_anno <- c()
 find2 <- c()
 find2_anno <- c()
 
+number_gk_eur <- c()
+number_annogk_eur <- c()
 
+number_gk_eas <- c()
+number_annogk_eas <- c()
+
+# 
 for(seed in c(1,12,10,10000,10000, 100, 1000, 123, 1234, 12345)){
   region_1 <- numeric()
   region_anno_1 <- numeric()
@@ -223,14 +236,14 @@ for(seed in c(1,12,10,10000,10000, 100, 1000, 123, 1234, 12345)){
     q_gkanno = result$q_gkanno
     n_region = length(q_gk)
     
-    
-    
     for(i in 1:n_region){
       # print(i)
+      snp = result$snp[[i]]
       a = q_gk[[i]]
       if(sum(a <= threshold) > 0){
         region_1 <- rbind(region_1, as.numeric(append(chrid, result$risk_region[[i]])))
         find1 <- append(find1, paste(chrid, i, sep = '_'))
+        number_gk_eur <- append(number_gk_eur, snp$id[which(a <= threshold)])
       }
       b = q_gkanno[[i]]
       # print(which(b <= threshold))
@@ -238,6 +251,7 @@ for(seed in c(1,12,10,10000,10000, 100, 1000, 123, 1234, 12345)){
         region_anno_1 <- rbind(region_anno_1, as.numeric(append(chrid, result$risk_region[[i]])))
         lambdas1 <- append(lambdas1, list(result$lambda_s[[i]]))
         find1_anno <- append(find1_anno, paste(chrid, i, sep = '_'))
+        number_annogk_eur <- append(number_annogk_eur, snp$id[which(b <= threshold)])
       }
     }
     
@@ -257,10 +271,12 @@ for(seed in c(1,12,10,10000,10000, 100, 1000, 123, 1234, 12345)){
     
     for(i in 1:n_region){
       # print(i)
+      snp = result$snp[[i]]
       a = q_gk[[i]]
       if(sum(a <= threshold) > 0){
         region_2 <- rbind(region_2, as.numeric(append(chrid, result$risk_region[[i]])))
         find2 <- append(find2, paste(chrid, i, sep = '_'))
+        number_gk_eas <- append(number_gk_eas, snp$id[which(a <= threshold)])
       }
       b = q_gkanno[[i]]
       # print(which(b <= threshold))
@@ -268,6 +284,7 @@ for(seed in c(1,12,10,10000,10000, 100, 1000, 123, 1234, 12345)){
         region_anno_2 <- rbind(region_anno_2, as.numeric(append(chrid, result$risk_region[[i]])))
         lambdas2 <- append(lambdas2, list(result$lambda_s[[i]]))
         find2_anno <- append(find2_anno, paste(chrid, i, sep = '_'))
+        number_annogk_eas <- append(number_annogk_eas, snp$id[which(b <= threshold)])
       }
     }
     
@@ -277,8 +294,19 @@ for(seed in c(1,12,10,10000,10000, 100, 1000, 123, 1234, 12345)){
   nrow(region_2)
   
   nrow(region_anno_1)
-
+  nrow(region_anno_2)
 }
+
+
+length(unique(number_gk_eur))
+length(unique(number_annogk_eur))
+length(unique(number_gk_eas))
+length(unique(number_annogk_eas))
+
+table(table(number_gk_eas))
+table(table(number_annogk_eas))
+
+
 
 repli = 4
 
@@ -323,8 +351,9 @@ library(ggplot2)
 library(dplyr)
 library(tidyr)
 
-ghost_counts <- as.numeric(table(find2))
-anno_counts  <- as.numeric(table(find2_anno))
+
+ghost_counts <- as.numeric(table(number_gk_eur))
+anno_counts  <- as.numeric(table(number_annogk_eur))
 
 thresholds <- 1:10
 
@@ -342,17 +371,64 @@ anno_summary <- data.frame(
 
 plot_df <- rbind(ghost_summary, anno_summary)
 
-p_thresh <- ggplot(plot_df, aes(x = factor(threshold), y = count, fill = Method)) +
+p1_thresh <- ggplot(plot_df, aes(x = factor(threshold), y = count, fill = Method)) +
   geom_bar(stat = "identity", position = "dodge") +
   labs(
-    title = "Number of signals detected ≥ threshold (EAS GWAS)",
+    title = "", #"Number of signals detected ≥ threshold (EUR GWAS)",
     x = "Detection frequency threshold",
     y = "Number of signals"
   ) +
   theme_minimal() +
   theme(
-    plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+    plot.title = element_text(hjust = 0.5, size = 12, face = "bold"),
     legend.title = element_blank()
   )
 
-p_thresh
+p1_thresh
+
+
+
+
+ghost_counts <- as.numeric(table(number_gk_eas))
+anno_counts  <- as.numeric(table(number_annogk_eas))
+
+thresholds <- 1:10
+
+ghost_summary <- data.frame(
+  threshold = thresholds/10,
+  count = sapply(thresholds, function(t) sum(ghost_counts >= t)),
+  Method = "GhostKnockoff"
+)
+
+anno_summary <- data.frame(
+  threshold = thresholds/10,
+  count = sapply(thresholds, function(t) sum(anno_counts >= t)),
+  Method = "AnnoGK"
+)
+
+plot_df <- rbind(ghost_summary, anno_summary)
+
+p2_thresh <- ggplot(plot_df, aes(x = factor(threshold), y = count, fill = Method)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "", #"Number of signals detected ≥ threshold (EAS GWAS)",
+    x = "Detection frequency threshold",
+    y = "Number of signals"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 12, face = "bold"),
+    legend.title = element_blank()
+  )
+
+p2_thresh
+
+
+library(patchwork)
+
+g = (p1_thresh + theme(legend.position = "none")) | p2_thresh
+
+ggsave("/gpfs/gibbs/pi/zhao/xz527/annoKn_plots/annoGk/SCZ_reproduce_SNP.pdf", 
+       g, 
+       width = 8, height = 4, units = "in", 
+       bg = "white", device = cairo_pdf)
